@@ -146,7 +146,7 @@ export default function ProfilePage() {
 
 	return (
 		<div className="py-8">
-			<div className="max-w-5xl px-4 sm:px-6 lg:px-8 mx-auto space-y-8">
+			<div className="max-w-6xl px-4 sm:px-6 lg:px-8 mx-auto space-y-8">
 				{/* Header */}
 				<div>
 					<h1 className="text-3xl font-bold">Profile Settings</h1>

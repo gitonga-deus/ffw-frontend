@@ -24,8 +24,19 @@ const Toaster = ({ ...props }: ToasterProps) => {
         error: <OctagonXIcon className="size-4" />,
         loading: <Loader2Icon className="size-4 animate-spin" />,
       }}
+      toastOptions={{
+        classNames: {
+          toast: "bg-white dark:bg-white border-border",
+          title: "text-foreground",
+          description: "text-muted-foreground",
+          success: "bg-white dark:bg-white text-green-600 dark:text-green-600",
+          error: "bg-white dark:bg-white text-red-600 dark:text-red-600",
+          warning: "bg-white dark:bg-white text-yellow-600 dark:text-yellow-600",
+          info: "bg-white dark:bg-white text-blue-600 dark:text-blue-600",
+        },
+      }}
       style={
-        {"--normal-bg":"var(--popover)","--normal-text":"var(--popover-foreground)","--normal-border":"var(--border)","--border-radius":"var(--radius)",
+        {"--normal-bg":"#ffffff","--normal-text":"var(--popover-foreground)","--normal-border":"var(--border)","--border-radius":"var(--radius)",
         } as React.CSSProperties
       }
       {...props}

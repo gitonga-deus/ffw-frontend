@@ -73,7 +73,7 @@ export function CertificateViewer({ url }: CertificateViewerProps) {
 	}
 
 	return (
-		<div className="border overflow-hidden bg-white rounded-md" style={{ height: "600px" }}>
+		<div className="border overflow-hidden bg-white" style={{ height: "600px" }}>
 			<iframe
 				src={blobUrl}
 				className="w-full h-full"

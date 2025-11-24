@@ -60,19 +60,31 @@ export interface Module {
 export interface Content {
   id: string;
   module_id: string;
-  content_type: 'video' | 'pdf' | 'rich_text';
+  content_type: 'video' | 'pdf' | 'rich_text' | 'exercise';
   title: string;
   order_index: number;
   vimeo_video_id?: string;
   video_duration?: number;
   pdf_url?: string;
   pdf_filename?: string;
-  rich_text_content?: RichTextContent;
+  rich_text_content?: RichTextContent | string; // Can be object with blocks/content or HTML string
   is_published: boolean;
+  // Exercise fields
+  exercise?: {
+    id: string;
+    content_id: string;
+    form_id: string;
+    embed_code: string;
+    form_title: string;
+    allow_multiple_submissions: boolean;
+    created_at: string;
+    updated_at: string;
+  };
 }
 
 export interface RichTextContent {
-  blocks: RichTextBlock[];
+  blocks?: RichTextBlock[];
+  content?: string; // HTML string from TipTap editor
 }
 
 export interface RichTextBlock {

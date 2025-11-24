@@ -93,7 +93,7 @@ export function PDFViewer({ content, onProgress, onComplete }: PDFViewerProps) {
 					</div>
 				</div>
 			) : (
-				<div className="border overflow-hidden bg-white rounded-md" style={{ height:"600px" }}>
+				<div className="border overflow-hidden bg-white" style={{ height:"600px" }}>
 					<iframe
 						src={blobUrl}
 						className="w-full h-full"

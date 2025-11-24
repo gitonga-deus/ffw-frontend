@@ -10,11 +10,13 @@ import { Separator } from "@/components/ui/separator";
 import { VideoPlayer } from "@/components/course/VideoPlayer";
 import { PDFViewer } from "@/components/course/PDFViewer";
 import { RichTextRenderer } from "@/components/course/RichTextRenderer";
+import { RichTextViewer } from "@/components/course/RichTextViewer";
+import { ExerciseViewer } from "@/components/course/ExerciseViewer";
 import { ProgressBar } from "@/components/course/ProgressBar";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, CheckCircle2, ChevronLast, ChevronLeft, ChevronRight, ChevronsLeftRight, Circle, Hourglass, InfoIcon, Lock, TableOfContents } from "lucide-react";
-import { Content, Module } from "@/types";
+import { Content, Module, RichTextContent } from "@/types";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
@@ -26,6 +28,7 @@ export default function ModuleContentPage() {
 	const queryClient = useQueryClient();
 	const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
 	const [exerciseResponses, setExerciseResponses] = useState<Record<string, Record<string, string>>>({});
+	const [exerciseCompletionStatus, setExerciseCompletionStatus] = useState<Record<string, { isCompleted: boolean; submittedAt?: string }>>({});
 	const hasRedirectedToCertificate = useRef(false);
 
 	// Fetch enrollment status to check if course was already completed
@@ -228,6 +231,17 @@ export default function ModuleContentPage() {
 
 	const selectedContent = contents?.find((c) => c.id === selectedContentId);
 
+	// Fetch exercise completion status when exercise content is selected
+	const { data: exerciseStatus } = useQuery({
+		queryKey: ["exercise-status", selectedContent?.exercise?.id],
+		queryFn: async () => {
+			if (!selectedContent?.exercise?.id) return null;
+			const response = await api.get(`/exercises/${selectedContent.exercise.id}/status`);
+			return response.data;
+		},
+		enabled: !!selectedContent?.exercise?.id && !!user?.is_enrolled,
+	});
+
 	// Get current content index and navigation info
 	const currentIndex = contents?.findIndex((c) => c.id === selectedContentId) ?? -1;
 	const hasPrevious = currentIndex > 0;
@@ -362,7 +376,7 @@ export default function ModuleContentPage() {
 
 	return (
 		<div className="container mx-auto px-4 py-8">
-			<div className="max-w-5xl px-4 sm:px-6 lg:px-8 mx-auto space-y-6">
+			<div className="max-w-6xl px-4 sm:px-6 lg:px-8 mx-auto space-y-6">
 				{/* Module Navigation Header */}
 				<div className="flex items-center justify-between gap-4">
 					<Button asChild variant="outline" className="rounded-md">
@@ -503,7 +517,9 @@ export default function ModuleContentPage() {
 											<div className="flex-1">
 												<CardTitle>{selectedContent.title}</CardTitle>
 												<Badge variant="outline" className="mt-2 capitalize px-3 py-0.5">
-													{selectedContent.content_type.replace("_", " ")}
+													{selectedContent.content_type === "exercise" 
+														? "Exercise" 
+														: selectedContent.content_type.replace("_", " ")}
 												</Badge>
 											</div>
 										</div>
@@ -541,12 +557,42 @@ export default function ModuleContentPage() {
 											/>
 										)}
 
-										{selectedContent.content_type === "rich_text" &&
-											selectedContent.rich_text_content && (
-												<RichTextRenderer
-													content={selectedContent.rich_text_content}
-													onExerciseSubmit={handleExerciseSubmit}
-													exerciseResponses={exerciseResponses}
+										{selectedContent.content_type === "rich_text" && (
+											<>
+												{selectedContent.rich_text_content ? (
+													typeof selectedContent.rich_text_content === 'string' ? (
+														<RichTextViewer htmlContent={selectedContent.rich_text_content} />
+													) : typeof selectedContent.rich_text_content === 'object' && 'content' in selectedContent.rich_text_content && selectedContent.rich_text_content.content ? (
+														<RichTextViewer htmlContent={selectedContent.rich_text_content.content} />
+													) : typeof selectedContent.rich_text_content === 'object' && 'blocks' in selectedContent.rich_text_content ? (
+														<RichTextRenderer
+															content={selectedContent.rich_text_content as RichTextContent}
+															onExerciseSubmit={handleExerciseSubmit}
+															exerciseResponses={exerciseResponses}
+														/>
+													) : (
+														<div className="bg-muted rounded-lg p-8 text-center">
+															<p className="text-muted-foreground">Invalid content format</p>
+														</div>
+													)
+												) : (
+													<div className="bg-muted rounded-lg p-8 text-center">
+														<p className="text-muted-foreground">No content available</p>
+													</div>
+												)}
+											</>
+										)}
+
+										{selectedContent.content_type === "exercise" &&
+											selectedContent.exercise && (
+												<ExerciseViewer
+													exerciseId={selectedContent.exercise.id}
+													embedCode={selectedContent.exercise.embed_code}
+													formTitle={selectedContent.exercise.form_title}
+													isCompleted={exerciseStatus?.is_completed || false}
+													onProgress={(timeSpent) =>
+														handleProgress(selectedContent.id, timeSpent, 0)
+													}
 												/>
 											)}
 

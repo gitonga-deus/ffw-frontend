@@ -9,7 +9,6 @@ import { Textarea } from"@/components/ui/textarea";
 import { Label } from"@/components/ui/label";
 import { StarRating } from"@/components/ui/star-rating";
 import { toast } from"sonner";
-import { MessageSquare, CheckCircle2 } from"lucide-react";
 
 interface ReviewFormProps {
 	onSuccess?: () => void;
@@ -147,7 +146,7 @@ export function ReviewForm({ onSuccess }: ReviewFormProps) {
 					<Button
 						type="submit"
 						disabled={submitReviewMutation.isPending}
-						className="w-full rounded-sm h-10 bg-[#049ad1] hover:bg-[#049ad1]/80"
+						className="w-full rounded h-10 bg-[#049ad1] hover:bg-[#049ad1]/80"
 					>
 						{submitReviewMutation.isPending ?"Submitting..." :"Submit Review"}
 					</Button>

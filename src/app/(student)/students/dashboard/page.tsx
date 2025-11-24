@@ -51,7 +51,22 @@ export default function StudentDashboard() {
 		isLoading: progressLoading,
 		isError: progressError,
 		refetch: refetchProgress
-	} = useQuery<ProgressOverview>({
+	} = useQuery<ProgressOverview & {
+		total_content?: number;
+		completed_content?: number;
+		content_breakdown?: {
+			videos: number;
+			pdfs: number;
+			rich_text: number;
+			exercises: number;
+		};
+		completed_breakdown?: {
+			videos: number;
+			pdfs: number;
+			rich_text: number;
+			exercises: number;
+		};
+	}>({
 		queryKey: ["progress"],
 		queryFn: async () => {
 			const response = await api.get("/progress");
@@ -85,7 +100,7 @@ export default function StudentDashboard() {
 
 	return (
 		<div className="container mx-auto px-4 py-8">
-			<div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+			<div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 				{/* Welcome Section */}
 				<div>
 					<h1 className="text-3xl font-bold">
@@ -153,7 +168,7 @@ export default function StudentDashboard() {
 						}}
 					/>
 				) : (
-					<div className="grid gap-4 md:grid-cols-2">
+					<div className="grid gap-4 md:grid-cols-4">
 						{/* Progress Card */}
 						<Card className="shadow-xs">
 							<CardHeader className="pb-3">
@@ -346,6 +361,101 @@ export default function StudentDashboard() {
 						</div>
 					</CardContent>
 				</Card>
+
+				{/* Content Progress Breakdown */}
+				{user.is_enrolled &&
+					enrollmentStatus?.has_signature &&
+					progress?.content_breakdown && (
+						<Card className="shadow-xs">
+							<CardHeader>
+								<CardTitle>Content Progress</CardTitle>
+								<CardDescription>Track your progress across different content types</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+									{/* Videos */}
+									{progress.content_breakdown.videos > 0 && (
+										<div className="space-y-2">
+											<div className="flex items-center justify-between text-sm">
+												<span className="text-muted-foreground">Videos</span>
+												<span className="font-medium">
+													{progress.completed_breakdown?.videos || 0} / {progress.content_breakdown.videos}
+												</span>
+											</div>
+											<Progress
+												value={
+													progress.content_breakdown.videos > 0
+														? ((progress.completed_breakdown?.videos || 0) / progress.content_breakdown.videos) * 100
+														: 0
+												}
+												className="h-2"
+											/>
+										</div>
+									)}
+
+									{/* PDFs */}
+									{progress.content_breakdown.pdfs > 0 && (
+										<div className="space-y-2">
+											<div className="flex items-center justify-between text-sm">
+												<span className="text-muted-foreground">PDFs</span>
+												<span className="font-medium">
+													{progress.completed_breakdown?.pdfs || 0} / {progress.content_breakdown.pdfs}
+												</span>
+											</div>
+											<Progress
+												value={
+													progress.content_breakdown.pdfs > 0
+														? ((progress.completed_breakdown?.pdfs || 0) / progress.content_breakdown.pdfs) * 100
+														: 0
+												}
+												className="h-2"
+											/>
+										</div>
+									)}
+
+									{/* Rich Text */}
+									{progress.content_breakdown.rich_text > 0 && (
+										<div className="space-y-2">
+											<div className="flex items-center justify-between text-sm">
+												<span className="text-muted-foreground">Articles</span>
+												<span className="font-medium">
+													{progress.completed_breakdown?.rich_text || 0} / {progress.content_breakdown.rich_text}
+												</span>
+											</div>
+											<Progress
+												value={
+													progress.content_breakdown.rich_text > 0
+														? ((progress.completed_breakdown?.rich_text || 0) / progress.content_breakdown.rich_text) * 100
+														: 0
+												}
+												className="h-2"
+											/>
+										</div>
+									)}
+
+									{/* Exercises */}
+									{progress.content_breakdown.exercises > 0 && (
+										<div className="space-y-2">
+											<div className="flex items-center justify-between text-sm">
+												<span className="text-muted-foreground">Exercises</span>
+												<span className="font-medium">
+													{progress.completed_breakdown?.exercises || 0} / {progress.content_breakdown.exercises}
+												</span>
+											</div>
+											<Progress
+												value={
+													progress.content_breakdown.exercises > 0
+														? ((progress.completed_breakdown?.exercises || 0) / progress.content_breakdown.exercises) * 100
+														: 0
+												}
+												className="h-2"
+											/>
+										</div>
+									)}
+								</div>
+							</CardContent>
+						</Card>
+					)}
 
 				{/* Announcements Section */}
 				<Card className="shadow-xs">

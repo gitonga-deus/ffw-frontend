@@ -1,138 +1,53 @@
-'use client';
+import FAQSection from "@/components/home/faq-section";
+import HeroSection from "@/components/home/hero-section";
+import SignupSteps from "@/components/home/signup-section";
+import TestimonialCarousel from "@/components/home/testimonial-carousel";
 
-import { ErrorBoundary } from '@/components/error-boundary';
-import { SectionErrorBoundary } from '@/components/home/SectionErrorBoundary';
-import HeroSection from '@/components/home/HeroSection';
-import { ModulesSection } from '@/components/home/ModulesSection';
-import { GettingStartedSection } from '@/components/home/GettingStartedSection';
-import { TestimonialsSection } from '@/components/home/TestimonialsSection';
-import { FAQSection } from '@/components/home/FAQSection';
-import Script from 'next/script';
-
-export default function HomePage() {
-	// Structured Data - Organization Schema
-	const organizationSchema = {
-		"@context": "https://schema.org",
-		"@type": "Organization",
-		"name": "Financially Fit World",
-		"url": "https://financiallyfitworld.com",
-		"logo": "https://financiallyfitworld.com/logo/logo.png",
-		"description": "Comprehensive financial literacy education platform helping individuals master their financial future",
-		"sameAs": [
-			"https://facebook.com/financiallyfitworld",
-			"https://twitter.com/financiallyfitworld",
-			"https://linkedin.com/company/financiallyfitworld"
-		],
-		"contactPoint": {
-			"@type": "ContactPoint",
-			"contactType": "Customer Service",
-			"email": "support@financiallyfitworld.com"
-		}
-	};
-
-	// Structured Data - Course Schema
-	const courseSchema = {
-		"@context": "https://schema.org",
-		"@type": "Course",
-		"name": "Financial Literacy Course",
-		"description": "Master your financial future with our comprehensive financial literacy course. Learn essential money management skills, investing strategies, budgeting techniques, and achieve your financial goals.",
-		"provider": {
-			"@type": "Organization",
-			"name": "Financially Fit World",
-			"url": "https://financiallyfitworld.com"
-		},
-		"courseCode": "FIN-101",
-		"educationalLevel": "Beginner to Intermediate",
-		"inLanguage": "en",
-		"availableLanguage": "en",
-		"teaches": [
-			"Money Management",
-			"Budgeting",
-			"Investing Basics",
-			"Financial Planning",
-			"Debt Management",
-			"Savings Strategies"
-		],
-		"hasCourseInstance": {
-			"@type": "CourseInstance",
-			"courseMode": "online",
-			"courseWorkload": "PT8H"
-		},
-		"offers": {
-			"@type": "Offer",
-			"category": "Paid",
-			"priceCurrency": "USD",
-			"price": "99.00"
-		}
-	};
-
-	// Structured Data - Aggregate Rating Schema (for reviews)
-	const aggregateRatingSchema = {
-		"@context": "https://schema.org",
-		"@type": "Product",
-		"name": "Financial Literacy Course",
-		"description": "Comprehensive financial literacy education",
-		"brand": {
-			"@type": "Brand",
-			"name": "Financially Fit World"
-		},
-		"aggregateRating": {
-			"@type": "AggregateRating",
-			"ratingValue": "4.8",
-			"reviewCount": "150",
-			"bestRating": "5",
-			"worstRating": "1"
-		}
-	};
-
+export default function Home() {
 	return (
 		<>
-			{/* Structured Data Scripts */}
-			<Script
-				id="organization-schema"
-				type="application/ld+json"
-				dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
-			/>
-			<Script
-				id="course-schema"
-				type="application/ld+json"
-				dangerouslySetInnerHTML={{ __html: JSON.stringify(courseSchema) }}
-			/>
-			<Script
-				id="aggregate-rating-schema"
-				type="application/ld+json"
-				dangerouslySetInnerHTML={{ __html: JSON.stringify(aggregateRatingSchema) }}
-			/>
-
-			<div className="min-h-screen flex flex-col">
-				{/* Main Content */}
-				<main className="flex-1">
-					{/* Hero Section */}
-					<SectionErrorBoundary sectionName="Hero Section">
-						<HeroSection />
-					</SectionErrorBoundary>
-
-					{/* Modules Section */}
-					<SectionErrorBoundary sectionName="Course Modules">
-						<ModulesSection />
-					</SectionErrorBoundary>
-
-					{/* Getting Started Section */}
-					<SectionErrorBoundary sectionName="Getting Started">
-						<GettingStartedSection />
-					</SectionErrorBoundary>
-
-					{/* Testimonials Section */}
-					<SectionErrorBoundary sectionName="Testimonials">
-						<TestimonialsSection />
-					</SectionErrorBoundary>
-
-					{/* FAQ Section */}
-					<SectionErrorBoundary sectionName="FAQ">
-						<FAQSection />
-					</SectionErrorBoundary>
-				</main>
-			</div>
+			<HeroSection />
+			<SignupSteps />
+			<section className="max-w-none mx-auto px-4 sm:px-6 lg:px-8 md:px-6 py-16 md:py-24">
+				<div className="text-center mb-12">
+					<h2 className="text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">What People Say About Financially Fit for Life, The Seven Steps</h2>
+				</div>
+				<TestimonialCarousel
+					testimonials={[
+						{
+							quote:
+								"I was skeptical about joining the Financially Fit for Life program at first, but it turned out to be one of the best decisions I've ever made. The program not only taught me the fundamentals of money management but also provided me with practical tools to achieve my financial goals. Thanks to this program, I now feel empowered to make informed financial decisions and secure a brighter future for myself and my family.",
+							author: "Audrey Tuya",
+							rating: 5,
+						},
+						{
+							quote:
+								"I cannot recommend the Financially Fit for Life program enough! As someone who was always intimidated by the complexities of personal finance, this program provided me with clear, actionable steps to take control of my money. The coaches were incredibly supportive and knowledgeable, guiding me every step of the way. Since completing the program, I've seen a significant improvement in my financial health and feel empowered to make informed decisions",
+							author: "Brian Koton",
+							rating: 5,
+						},
+						{
+							quote:
+								"I cannot express enough gratitude for the Financially Fit for Life program. It's not just a course; it's a life-changing experience. The practical strategies and actionable advice have empowered me to take control of my finances and make smarter decisions. This program is a game-changer for anyone looking to achieve financial stability and security.",
+							author: "Monicah Gitau",
+							rating: 5,
+						},
+						{
+							quote:
+								"The Financially Fit for Life program exceeded my expectations in every way. Not only did it provide me with the knowledge and tools to improve my financial situation, but it also instilled in me a sense of discipline and accountability. The interactive lessons and personalized guidance helped me identify areas for improvement and take action towards achieving financial freedom. I'm truly grateful for this transformative experience.",
+							author: "Erick Mungai",
+							rating: 5,
+						},
+						{
+							quote:
+								"After years of struggling with managing my finances, I stumbled upon the Financially Fit for Life program. It completely transformed my perspective on money. Through their guidance, I learned practical strategies for budgeting, saving, and investing wisely. Thanks to this program, I now feel confident.",
+							author: "Francisca Nkatha",
+							rating: 5,
+						},
+					]}
+				/>
+			</section>
+			<FAQSection />
 		</>
 	);
 }

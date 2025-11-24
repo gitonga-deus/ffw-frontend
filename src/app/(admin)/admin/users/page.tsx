@@ -11,6 +11,7 @@ import {
 	CheckCircle,
 	ChevronLeft,
 	ChevronRight,
+	Download,
 } from"lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from"@/components/ui/card";
 import { Skeleton } from"@/components/ui/skeleton";
@@ -109,6 +110,57 @@ export default function UsersPage() {
 			user.email.toLowerCase().includes(searchQuery.toLowerCase())
 	);
 
+	const exportUsersToCSV = () => {
+		if (!filteredUsers || filteredUsers.length === 0) {
+			return;
+		}
+
+		// Prepare CSV headers
+		const headers = [
+			"Full Name",
+			"Email",
+			"Phone Number",
+			"Role",
+			"Enrollment Status",
+			"Verification Status",
+			"Registered Date",
+			"Last Login",
+		];
+
+		// Prepare CSV rows
+		const rows = filteredUsers.map((user) => [
+			user.full_name,
+			user.email,
+			user.phone_number,
+			user.role,
+			user.is_enrolled ? "Enrolled" : "Not Enrolled",
+			user.is_verified ? "Verified" : "Unverified",
+			formatDate(user.created_at),
+			user.last_login_at ? formatDateTime(user.last_login_at) : "Never",
+		]);
+
+		// Create CSV content
+		const csvContent = [
+			headers.join(","),
+			...rows.map((row) =>
+				row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+			),
+		].join("\n");
+
+		// Create blob and download
+		const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+		const link = document.createElement("a");
+		const url = URL.createObjectURL(blob);
+		
+		link.setAttribute("href", url);
+		link.setAttribute("download", `users-export-${new Date().toISOString().split("T")[0]}.csv`);
+		link.style.visibility = "hidden";
+		
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	};
+
 	if (loading && !data) {
 		return <UsersSkeleton />;
 	}
@@ -132,9 +184,20 @@ export default function UsersPage() {
 	return (
 		<div className="flex flex-1 flex-col gap-6 p-6">
 			{/* Page Header */}
-			<div>
-				<h1 className="text-2xl font-bold mb-2">Users</h1>
-				<p className="text-muted-foreground">Manage and view all registered users</p>
+			<div className="flex items-center justify-between">
+				<div>
+					<h1 className="text-2xl font-bold mb-2">Users</h1>
+					<p className="text-muted-foreground">Manage and view all registered users</p>
+				</div>
+				<Button
+					variant="outline"
+					onClick={exportUsersToCSV}
+					disabled={!filteredUsers || filteredUsers.length === 0}
+					className="rounded-sm px-6!"
+				>
+					<Download className="h-4 w-4 mr-2" />
+					Export Data
+				</Button>
 			</div>
 
 			{/* Stats Cards */}
@@ -254,10 +317,10 @@ export default function UsersPage() {
 											</div>
 										</TableCell>
 										<TableCell>
-											<div className="flex flex-col gap-1">
+											<div className="flex flex-col gap-1.5">
 												<Badge
-													variant={user.is_enrolled ?"default" :"secondary"}
-													className="w-fit text-xs bg-[#049AD1]"
+													variant={user.is_enrolled ?"default" :"destructive"}
+													className="w-fit text-xs"
 												>
 													{user.is_enrolled ? (
 														<>
@@ -270,7 +333,7 @@ export default function UsersPage() {
 													)}
 												</Badge>
 												<Badge
-													variant={user.is_verified ?"default" :"outline"}
+													variant={user.is_verified ?"secondary" :"outline"}
 													className="w-fit"
 												>
 													{user.is_verified ? (

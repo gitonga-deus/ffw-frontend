@@ -134,7 +134,7 @@ export default function SignaturePage() {
 
 	return (
 		<div className="container mx-auto px-4 py-8">
-			<div className="max-w-5xl px-4 sm:px-6 lg:px-8 mx-auto space-y-6">
+			<div className="max-w-6xl px-4 sm:px-6 lg:px-8 mx-auto space-y-6">
 				{/* Header */}
 				<div className="text-left space-y-2">
 					<h1 className="text-3xl font-bold tracking-tight">Complete Your Enrollment</h1>

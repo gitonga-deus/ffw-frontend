@@ -104,7 +104,7 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
 		content,
 		editorProps: {
 			attributes: {
-				class:"prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none min-h-[300px] p-4",
+				class:"prose prose-slate dark:prose-invert max-w-none focus:outline-none min-h-[300px] p-4 prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-ul:list-disc prose-ol:list-decimal prose-li:my-1 prose-p:my-3",
 			},
 		},
 		onUpdate: ({ editor }) => {

@@ -90,4 +90,17 @@ export const contentApi = {
 	async deleteContent(contentId: string): Promise<void> {
 		await api.delete(`/admin/content/${contentId}`);
 	},
+
+	async reorderContent(contentOrder: Array<{ id: string; order_index: number }>): Promise<void> {
+		console.log("API call - reorderContent with:", contentOrder);
+		const response = await api.put("/admin/content/reorder", { items: contentOrder });
+		console.log("API response:", response.data);
+		return response.data;
+	},
+
+	// Exercise endpoints
+	async getExerciseSubmissions(exerciseId: string): Promise<any> {
+		const response = await api.get(`/admin/exercises/${exerciseId}/submissions`);
+		return response.data;
+	},
 };

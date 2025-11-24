@@ -14,15 +14,25 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { User, LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export function StudentNavbar() {
 	const { user, logout } = useAuth();
+	const pathname = usePathname();
 
 	if (!user) return null;
 
+	const isActive = (path: string) => {
+		if (path === "/students/dashboard") {
+			return pathname === path;
+		}
+		return pathname?.startsWith(path);
+	};
+
 	return (
 		<header className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 sticky top-0 z-50">
-			<div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
+			<div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
 				<div className="flex items-center gap-6 divide-x">
 					{/* Logo */}
 					<Link href="/students/dashboard" className="flex items-center gap-2 pr-6">
@@ -40,7 +50,12 @@ export function StudentNavbar() {
 					<nav className="hidden md:flex items-center gap-4">
 						<Link
 							href="/students/dashboard"
-							className="text-sm font-medium hover:text-primary transition-colors"
+							className={cn(
+								"text-sm font-medium transition-colors relative py-1",
+								isActive("/students/dashboard")
+									? "text-primary font-semibold bg-muted px-3 py-2 rounded"
+									: "text-muted-foreground hover:text-foreground"
+							)}
 						>
 							Dashboard
 						</Link>
@@ -48,13 +63,23 @@ export function StudentNavbar() {
 							<>
 								<Link
 									href="/students/course"
-									className="text-sm font-medium hover:text-primary transition-colors"
+									className={cn(
+										"text-sm font-medium transition-colors relative py-1",
+										isActive("/students/course")
+											? "text-primary font-semibold bg-muted px-3 py-2 rounded"
+											: "text-muted-foreground hover:text-foreground"
+									)}
 								>
 									Course
 								</Link>
 								<Link
 									href="/students/certificate"
-									className="text-sm font-medium hover:text-primary transition-colors"
+									className={cn(
+										"text-sm font-medium transition-colors relative py-1",
+										isActive("/students/certificate")
+											? "text-primary font-semibold bg-muted px-3 py-2 rounded"
+											: "text-muted-foreground hover:text-foreground"
+									)}
 								>
 									Certificate
 								</Link>

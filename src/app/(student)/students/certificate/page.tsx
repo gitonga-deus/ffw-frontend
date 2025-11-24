@@ -67,7 +67,7 @@ export default function CertificatePage() {
 	if (isLoading) {
 		return (
 			<div className="container mx-auto px-4 py-8">
-				<div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+				<div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="text-center py-12">
 						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
 						<p className="mt-4 text-muted-foreground">Loading certificate...</p>
@@ -80,7 +80,7 @@ export default function CertificatePage() {
 	if (error || !certificate) {
 		return (
 			<div className="container mx-auto px-4 py-8">
-				<div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+				<div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 					<Card className="border-yellow-500/50 shadow-xs">
 						<CardHeader>
 							<CardTitle className="flex items-center gap-2 text-xl">
@@ -109,17 +109,17 @@ export default function CertificatePage() {
 
 	return (
 		<div className="container mx-auto px-4 py-8">
-			<div className="max-w-5xl px-4 sm:px-6 lg:px-8 mx-auto space-y-8">
+			<div className="max-w-6xl px-4 sm:px-6 lg:px-8 mx-auto space-y-8">
 				{/* Header */}
 				<div className="text-left">
-					<h1 className="text-3xl font-bold tracking-tight">Congratulations!</h1>
+					<h1 className="text-3xl font-bold">Congratulations!</h1>
 					<p className="text-muted-foreground mt-2">
 						You&apos;ve successfully completed the course
 					</p>
 				</div>
 
 				{/* Certificate Card */}
-				<Card className="shadow-xs">
+				<Card className="shadow-xs rounded">
 					<CardHeader>
 						<div className="flex items-center justify-between">
 							<div>
@@ -190,13 +190,13 @@ export default function CertificatePage() {
 
 						{/* Actions */}
 						<div className="flex flex-col sm:flex-row gap-4">
-							<Button asChild className="flex-1 h-10 bg-[#049ad1] hover:bg-[#049ad1]/80">
+							<Button asChild className="flex-1 h-10 rounded bg-[#049ad1] hover:bg-[#049ad1]/80">
 								<a href={certificate.certificate_url} download target="_blank" rel="noopener noreferrer">
 									<Download className="mr-2 h-4 w-4" />
 									Download Certificate
 								</a>
 							</Button>
-							<Button asChild variant="outline" className="flex-1 h-10">
+							<Button asChild variant="outline" className="flex-1 h-10 rounded">
 								<a href={verificationUrl} target="_blank" rel="noopener noreferrer">
 									<ExternalLink className="mr-2 h-4 w-4" />
 									Verify Certificate
@@ -208,11 +208,11 @@ export default function CertificatePage() {
 						<div className="bg-muted p-4">
 							<p className="text-sm font-medium mb-2">Verification URL</p>
 							<div className="flex items-center gap-2">
-								<code className="flex-1 text-xs bg-background px-3 py-2 border overflow-x-auto font-mono">
+								<code className="flex-1 text-xs bg-background h-9 py-2 px-3 border overflow-x-auto font-mono">
 									{verificationUrl}
 								</code>
 								<Button
-									size="sm"
+									
 									variant="outline"
 									className="rounded"
 									onClick={() => {
@@ -234,7 +234,7 @@ export default function CertificatePage() {
 
 				{/* Back to Dashboard */}
 				<div className="text-center">
-					<Button asChild variant="outline" className="h-10 w-1/2 mb-10">
+					<Button asChild variant="outline" className="h-10 w-1/2 mb-10 rounded">
 						<Link href="/students/dashboard">Back to Dashboard</Link>
 					</Button>
 				</div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { contentApi } from "@/lib/content-api";
 import type { ModuleResponse, ContentResponse, ModuleWithContent } from "@/types/content";
-import { NotebookPen, Video, FileText, Plus, Edit, EyeClosed, GripVertical, Trash2 } from "lucide-react";
+import { NotebookPen, Video, FileText, Plus, Edit, EyeClosed, GripVertical, Trash2, ClipboardList } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,24 @@ import { ModuleDialog } from "@/components/admin/content/module-dialog";
 import { ContentDialog } from "@/components/admin/content/content-dialog";
 import { DeleteDialog } from "@/components/admin/content/delete-dialog";
 import { ContentPreviewDialog } from "@/components/admin/content/content-preview-dialog";
+import { ExerciseDetailsDialog } from "@/components/admin/content/exercise-details-dialog";
+import {
+	DndContext,
+	closestCenter,
+	KeyboardSensor,
+	PointerSensor,
+	useSensor,
+	useSensors,
+	DragEndEvent,
+} from "@dnd-kit/core";
+import {
+	arrayMove,
+	SortableContext,
+	sortableKeyboardCoordinates,
+	useSortable,
+	verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export default function ContentPage() {
 	const [modules, setModules] = useState<ModuleWithContent[]>([]);
@@ -25,9 +43,11 @@ export default function ContentPage() {
 	const [contentDialogOpen, setContentDialogOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+	const [exerciseDetailsDialogOpen, setExerciseDetailsDialogOpen] = useState(false);
 	const [editingModule, setEditingModule] = useState<ModuleResponse | null>(null);
 	const [editingContent, setEditingContent] = useState<ContentResponse | null>(null);
 	const [previewingContent, setPreviewingContent] = useState<ContentResponse | null>(null);
+	const [viewingExercise, setViewingExercise] = useState<ContentResponse | null>(null);
 	const [selectedModuleForContent, setSelectedModuleForContent] = useState<string | null>(null);
 	const [deleteTarget, setDeleteTarget] = useState<{ type: "module" | "content"; id: string; name: string } | null>(null);
 
@@ -91,8 +111,14 @@ export default function ContentPage() {
 	};
 
 	const handlePreviewContent = (content: ContentResponse) => {
-		setPreviewingContent(content);
-		setPreviewDialogOpen(true);
+		// For exercises, show details dialog instead of preview
+		if (content.content_type === "exercise") {
+			setViewingExercise(content);
+			setExerciseDetailsDialogOpen(true);
+		} else {
+			setPreviewingContent(content);
+			setPreviewDialogOpen(true);
+		}
 	};
 
 	const handleDeleteContent = (content: ContentResponse) => {
@@ -124,6 +150,8 @@ export default function ContentPage() {
 				return <FileText className="h-4 w-4" />;
 			case "rich_text":
 				return <FileText className="h-4 w-4" />;
+			case "exercise":
+				return <ClipboardList className="h-4 w-4" />;
 			default:
 				return <NotebookPen className="h-4 w-4" />;
 		}
@@ -134,6 +162,60 @@ export default function ContentPage() {
 		const mins = Math.floor(seconds / 60);
 		const secs = seconds % 60;
 		return `${mins}:${secs.toString().padStart(2, "0")}`;
+	};
+
+	const sensors = useSensors(
+		useSensor(PointerSensor),
+		useSensor(KeyboardSensor, {
+			coordinateGetter: sortableKeyboardCoordinates,
+		})
+	);
+
+	const handleDragEnd = async (event: DragEndEvent, moduleId: string) => {
+		const { active, over } = event;
+
+		if (!over || active.id === over.id) {
+			return;
+		}
+
+		// Find the module
+		const module = modules.find((m) => m.id === moduleId);
+		if (!module) return;
+
+		const oldIndex = module.content_items.findIndex((item) => item.id === active.id);
+		const newIndex = module.content_items.findIndex((item) => item.id === over.id);
+
+		if (oldIndex === -1 || newIndex === -1) return;
+
+		// Reorder locally first for immediate feedback
+		const newContentItems = arrayMove(module.content_items, oldIndex, newIndex);
+
+		// Update local state
+		setModules((prevModules) =>
+			prevModules.map((m) =>
+				m.id === moduleId ? { ...m, content_items: newContentItems } : m
+			)
+		);
+
+		// Prepare the order data with updated order_index
+		const contentOrder = newContentItems.map((item, index) => ({
+			id: item.id,
+			order_index: index,
+		}));
+
+		try {
+			// Send to backend
+			console.log("Sending reorder request with data:", contentOrder);
+			await contentApi.reorderContent(contentOrder);
+			toast.success("Content reordered successfully");
+		} catch (err: any) {
+			console.error("Reorder error:", err);
+			console.error("Error response:", err.response?.data);
+			const errorMessage = err.response?.data?.detail || err.message || "Failed to reorder content";
+			toast.error(errorMessage);
+			// Revert on error
+			await fetchContent();
+		}
 	};
 
 	if (loading) {
@@ -170,6 +252,10 @@ export default function ContentPage() {
 			(sum, m) => sum + m.content_items.filter((c) => c.content_type === "rich_text").length,
 			0
 		),
+		exercises: modules.reduce(
+			(sum, m) => sum + m.content_items.filter((c) => c.content_type === "exercise").length,
+			0
+		),
 	};
 
 	return (
@@ -189,7 +275,7 @@ export default function ContentPage() {
 			</div>
 
 			{/* Stats Cards */}
-			<div className="grid gap-4 md:grid-cols-4">
+			<div className="grid gap-4 md:grid-cols-5">
 				<Card className="rounded-md shadow-xs">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 						<CardTitle className="text-sm font-medium">Total Modules</CardTitle>
@@ -232,6 +318,16 @@ export default function ContentPage() {
 						<p className="text-xs text-muted-foreground">
 							{stats.pdfs} PDFs, {stats.richText} Rich Text
 						</p>
+					</CardContent>
+				</Card>
+
+				<Card className="rounded-md shadow-xs">
+					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+						<CardTitle className="text-sm font-medium">Exercises</CardTitle>
+						<ClipboardList className="h-4 w-4 text-muted-foreground" />
+					</CardHeader>
+					<CardContent>
+						<div className="text-2xl font-bold">{stats.exercises}</div>
 					</CardContent>
 				</Card>
 			</div>
@@ -306,67 +402,29 @@ export default function ContentPage() {
 							{expandedModules.has(module.id) && (
 								<CardContent>
 									{module.content_items.length > 0 ? (
-										<div className="space-y-2">
-											{module.content_items.map((content) => (
-												<div
-													key={content.id}
-													className="flex items-center justify-between p-3 mt-4 border hover:bg-muted/50 transition-colors"
-												>
-													<div className="flex items-center gap-2 flex-1">
-														<GripVertical className="h-4 w-4 text-muted-foreground" />
-														<div className="flex items-center gap-2">
-															<span className="font-medium">{content.title}</span>
-														</div>
-														<Badge variant="secondary" className="lowercase text-xs">
-															{content.content_type}
-														</Badge>
-														<Badge
-															variant={content.is_published ? "default" : "secondary"}
-															className="text-xs cursor-pointer lowercase bg-[#049ad1]"
-															onClick={() =>
-																handleTogglePublish("content", content.id, content.is_published)
-															}
-														>
-															{content.is_published ? (
-																<>
-																	Published
-																</>
-															) : (
-																<>
-																	Draft
-																</>
-															)}
-														</Badge>
-													</div>
-													<div className="flex items-center gap-2">
-														<Button
-															variant="ghost"
-															size="sm"
-															onClick={() => handlePreviewContent(content)}
-															title="Preview"
-														>
-															<EyeClosed className="h-4 w-4" />
-														</Button>
-														<Button
-															variant="ghost"
-															size="sm"
-															onClick={() => handleEditContent(content)}
-															title="Edit"
-														>
-															<Edit className="h-4 w-4" />
-														</Button>
-														<Button
-															variant="ghost"
-															size="sm"
-															onClick={() => handleDeleteContent(content)}
-															title="Delete"
-														>
-															<Trash2 className="h-4 w-4 text-destructive" />
-														</Button>
-													</div>
+										<DndContext
+											sensors={sensors}
+											collisionDetection={closestCenter}
+											onDragEnd={(event) => handleDragEnd(event, module.id)}
+										>
+											<SortableContext
+												items={module.content_items.map((item) => item.id)}
+												strategy={verticalListSortingStrategy}
+											>
+												<div className="space-y-2">
+													{module.content_items.map((content) => (
+														<SortableContentItem
+															key={content.id}
+															content={content}
+															onPreview={handlePreviewContent}
+															onEdit={handleEditContent}
+															onDelete={handleDeleteContent}
+															onTogglePublish={handleTogglePublish}
+														/>
+													))}
 												</div>
-											))}
-										</div>
+											</SortableContext>
+										</DndContext>
 									) : (
 										<div className="text-center py-8 text-muted-foreground">
 											<p>No content items yet</p>
@@ -426,6 +484,81 @@ export default function ContentPage() {
 				onOpenChange={setPreviewDialogOpen}
 				content={previewingContent}
 			/>
+
+			<ExerciseDetailsDialog
+				open={exerciseDetailsDialogOpen}
+				onOpenChange={setExerciseDetailsDialogOpen}
+				content={viewingExercise}
+			/>
+		</div>
+	);
+}
+
+interface SortableContentItemProps {
+	content: ContentResponse;
+	onPreview: (content: ContentResponse) => void;
+	onEdit: (content: ContentResponse) => void;
+	onDelete: (content: ContentResponse) => void;
+	onTogglePublish: (type: "content", id: string, currentStatus: boolean) => void;
+}
+
+function SortableContentItem({
+	content,
+	onPreview,
+	onEdit,
+	onDelete,
+	onTogglePublish,
+}: SortableContentItemProps) {
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+		id: content.id,
+	});
+
+	const style = {
+		transform: CSS.Transform.toString(transform),
+		transition,
+		opacity: isDragging ? 0.5 : 1,
+	};
+
+	return (
+		<div
+			ref={setNodeRef}
+			style={style}
+			className="flex items-center justify-between p-3 mt-4 border hover:bg-muted/50 transition-colors"
+		>
+			<div className="flex items-center gap-2 flex-1">
+				<div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+					<GripVertical className="h-4 w-4 text-muted-foreground" />
+				</div>
+				<div className="flex items-center gap-2">
+					<span className="font-medium">{content.title}</span>
+				</div>
+				<Badge variant="secondary" className="lowercase text-xs">
+					{content.content_type}
+				</Badge>
+				<Badge
+					variant={content.is_published ? "default" : "secondary"}
+					className="text-xs cursor-pointer lowercase bg-[#049ad1]"
+					onClick={() => onTogglePublish("content", content.id, content.is_published)}
+				>
+					{content.is_published ? <>Published</> : <>Draft</>}
+				</Badge>
+			</div>
+			<div className="flex items-center gap-2">
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={() => onPreview(content)}
+					title={content.content_type === "exercise" ? "View Details" : "Preview"}
+				>
+					<EyeClosed className="h-4 w-4" />
+				</Button>
+				<Button variant="ghost" size="sm" onClick={() => onEdit(content)} title="Edit">
+					<Edit className="h-4 w-4" />
+				</Button>
+				<Button variant="ghost" size="sm" onClick={() => onDelete(content)} title="Delete">
+					<Trash2 className="h-4 w-4 text-destructive" />
+				</Button>
+			</div>
 		</div>
 	);
 }
@@ -440,8 +573,8 @@ function ContentSkeleton() {
 				</div>
 				<Skeleton className="h-10 w-32" />
 			</div>
-			<div className="grid gap-4 md:grid-cols-4">
-				{Array.from({ length: 4 }).map((_, i) => (
+			<div className="grid gap-4 md:grid-cols-5">
+				{Array.from({ length: 5 }).map((_, i) => (
 					<Card key={i}>
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 							<Skeleton className="h-4 w-24" />

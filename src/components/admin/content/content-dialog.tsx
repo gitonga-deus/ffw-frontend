@@ -20,6 +20,7 @@ import { toast } from"sonner";
 import { VideoContentForm } from"./video-content-form";
 import { PDFContentForm } from"./pdf-content-form";
 import { RichTextContentForm } from"./rich-text-content-form";
+import { ExerciseContentForm } from"./exercise-content-form";
 
 interface ContentDialogProps {
 	open: boolean;
@@ -31,7 +32,7 @@ interface ContentDialogProps {
 
 export function ContentDialog({ open, onOpenChange, content, moduleId, onSuccess }: ContentDialogProps) {
 	const [loading, setLoading] = useState(false);
-	const [contentType, setContentType] = useState<"video" |"pdf" |"rich_text">("video");
+	const [contentType, setContentType] = useState<"video" |"pdf" |"rich_text" |"exercise">("video");
 	const [formData, setFormData] = useState({
 		title:"",
 		order_index: 0,
@@ -44,6 +45,11 @@ export function ContentDialog({ open, onOpenChange, content, moduleId, onSuccess
 		pdf_filename:"",
 		// Rich text fields
 		rich_text_content: null as any,
+		// Exercise fields
+		embed_code:"",
+		form_title:"",
+		allow_multiple_submissions: false,
+		embed_code_valid: false,
 	});
 
 	useEffect(() => {
@@ -58,6 +64,10 @@ export function ContentDialog({ open, onOpenChange, content, moduleId, onSuccess
 				pdf_file: null,
 				pdf_filename: content.pdf_filename ||"",
 				rich_text_content: content.rich_text_content,
+				embed_code: content.exercise?.embed_code ||"",
+				form_title: content.exercise?.form_title ||"",
+				allow_multiple_submissions: content.exercise?.allow_multiple_submissions || false,
+				embed_code_valid: true,
 			});
 		} else {
 			setContentType("video");
@@ -70,6 +80,10 @@ export function ContentDialog({ open, onOpenChange, content, moduleId, onSuccess
 				pdf_file: null,
 				pdf_filename:"",
 				rich_text_content: null,
+				embed_code:"",
+				form_title:"",
+				allow_multiple_submissions: false,
+				embed_code_valid: false,
 			});
 		}
 	}, [content, open]);
@@ -96,6 +110,10 @@ export function ContentDialog({ open, onOpenChange, content, moduleId, onSuccess
 					updateData.pdf_filename = formData.pdf_filename;
 				} else if (contentType ==="rich_text") {
 					updateData.rich_text_content = formData.rich_text_content;
+				} else if (contentType ==="exercise") {
+					updateData.embed_code = formData.embed_code;
+					updateData.form_title = formData.form_title;
+					updateData.allow_multiple_submissions = formData.allow_multiple_submissions;
 				}
 
 				await contentApi.updateContent(content.id, updateData);
@@ -123,6 +141,12 @@ export function ContentDialog({ open, onOpenChange, content, moduleId, onSuccess
 					createData.pdf_filename = formData.pdf_filename;
 				} else if (contentType ==="rich_text") {
 					createData.rich_text_content = formData.rich_text_content;
+				} else if (contentType ==="exercise") {
+					createData.exercise_data = {
+						embed_code: formData.embed_code,
+						form_title: formData.form_title,
+						allow_multiple_submissions: formData.allow_multiple_submissions || false
+					};
 				}
 
 				const newContent = await contentApi.createContent(createData);
@@ -148,7 +172,7 @@ export function ContentDialog({ open, onOpenChange, content, moduleId, onSuccess
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto max-w-4xl!!">
+			<DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto max-w-4xl! rounded">
 				<form onSubmit={handleSubmit}>
 					<DialogHeader>
 						<DialogTitle>{content ?"Edit Content" :"Create Content"}</DialogTitle>
@@ -179,10 +203,10 @@ export function ContentDialog({ open, onOpenChange, content, moduleId, onSuccess
 								id="order_index"
 								type="number"
 								min="0"
-								value={formData.order_index}
+								value={formData.order_index || 0}
 								className="h-10"
 								onChange={(e) =>
-									setFormData({ ...formData, order_index: parseInt(e.target.value) })
+									setFormData({ ...formData, order_index: parseInt(e.target.value) || 0 })
 								}
 								required
 							/>
@@ -193,10 +217,11 @@ export function ContentDialog({ open, onOpenChange, content, moduleId, onSuccess
 							<div className="grid gap-2">
 								<Label>Content Type *</Label>
 								<Tabs value={contentType} onValueChange={(v) => setContentType(v as any)}>
-									<TabsList className="grid w-full grid-cols-3 h-10">
+									<TabsList className="grid w-full grid-cols-4 h-10 rounded">
 										<TabsTrigger value="video" className="rounded">Video</TabsTrigger>
 										<TabsTrigger value="pdf" className="rounded">PDF</TabsTrigger>
 										<TabsTrigger value="rich_text" className="rounded">Rich Text</TabsTrigger>
+										<TabsTrigger value="exercise" className="rounded">Exercise</TabsTrigger>
 									</TabsList>
 								</Tabs>
 							</div>
@@ -213,6 +238,10 @@ export function ContentDialog({ open, onOpenChange, content, moduleId, onSuccess
 
 						{contentType ==="rich_text" && (
 							<RichTextContentForm formData={formData} setFormData={setFormData} />
+						)}
+
+						{contentType ==="exercise" && (
+							<ExerciseContentForm formData={formData} setFormData={setFormData} />
 						)}
 
 						{/* Published Toggle */}

@@ -5,7 +5,7 @@ import { Mail, Phone } from "lucide-react";
 export function PublicFooter() {
 	return (
 		<footer className="bg-[#212A31] text-gray-300 py-10">
-			<div className="max-w-6xl mx-auto px-4 md:px-6">
+			<div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 md:px-6">
 				<div className="grid grid-cols-1 md:grid-cols-5 gap-8 mt-6 mb-8">
 					{/* Brand */}
 					<div className="col-span-1 md:col-span-3 gap-10">

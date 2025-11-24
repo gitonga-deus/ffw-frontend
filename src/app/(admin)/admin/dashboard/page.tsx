@@ -107,6 +107,57 @@ export default function AdminDashboardPage() {
 		);
 	};
 
+	const exportPaymentsToCSV = (paymentsData: PaymentListItem[]) => {
+		if (paymentsData.length === 0) {
+			return;
+		}
+
+		// Prepare CSV headers
+		const headers = [
+			"Transaction ID",
+			"Student Name",
+			"Student Email",
+			"Amount",
+			"Currency",
+			"Payment Method",
+			"Status",
+			"Date",
+		];
+
+		// Prepare CSV rows
+		const rows = paymentsData.map((payment) => [
+			payment.ipay_transaction_id || payment.id.slice(0, 8),
+			payment.user_name,
+			payment.user_email,
+			parseFloat(payment.amount).toLocaleString(),
+			payment.currency,
+			payment.payment_method || "N/A",
+			payment.status.charAt(0).toUpperCase() + payment.status.slice(1),
+			formatDate(payment.created_at),
+		]);
+
+		// Create CSV content
+		const csvContent = [
+			headers.join(","),
+			...rows.map((row) =>
+				row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+			),
+		].join("\n");
+
+		// Create blob and download
+		const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+		const link = document.createElement("a");
+		const url = URL.createObjectURL(blob);
+		
+		link.setAttribute("href", url);
+		link.setAttribute("download", `payment-transactions-${new Date().toISOString().split("T")[0]}.csv`);
+		link.style.visibility = "hidden";
+		
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	};
+
 	if (loading) {
 		return <DashboardSkeleton />;
 	}
@@ -212,18 +263,6 @@ export default function AdminDashboardPage() {
 
 				{/* Overview Tab */}
 				<TabsContent value="overview" className="space-y-6">
-					{/* <div className="flex justify-end">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => exportOverviewCSV(analytics)}
-							className="h-9"
-						>
-							<Download className="h-4 w-4 mr-2" />
-							Export Overview
-						</Button>
-					</div> */}
-
 					{/* Quick Stats Row */}
 					<div className="grid gap-4 md:grid-cols-3">
 						<Card className="rounded-md shadow-xs">
@@ -460,8 +499,21 @@ export default function AdminDashboardPage() {
 					{/* Payment Transactions Table */}
 					<Card className="rounded-md shadow-xs">
 						<CardHeader>
-							<CardTitle>Recent Transactions</CardTitle>
-							<CardDescription>Latest payment transactions</CardDescription>
+							<div className="flex items-center justify-between">
+								<div>
+									<CardTitle>Recent Transactions</CardTitle>
+									<CardDescription>Latest payment transactions</CardDescription>
+								</div>
+								<Button
+									variant="outline"
+									onClick={() => exportPaymentsToCSV(payments)}
+									disabled={payments.length === 0}
+									className="rounded"
+								>
+									<Download className="h-4 w-4 mr-2" />
+									Export Data
+								</Button>
+							</div>
 						</CardHeader>
 						<CardContent>
 							{paymentsLoading ? (

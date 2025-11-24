@@ -148,7 +148,7 @@ function SuccessContent() {
 								<Button asChild className="w-full h-10 bg-[#049ad1] hover:bg-[#049ad1]/80 rounded">
 									<Link href="/students/signature">Complete Signature</Link>
 								</Button>
-								<Button asChild variant="outline" className="w-full h-10">
+								<Button asChild variant="outline" className="w-full h-10 rounded">
 									<Link href="/students/dashboard">Go to Dashboard</Link>
 								</Button>
 							</>
