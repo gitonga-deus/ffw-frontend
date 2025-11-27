@@ -19,10 +19,14 @@ export default function SignaturePage() {
 	const { user } = useAuth();
 	const router = useRouter();
 	const [commitments, setCommitments] = useState({
-		complete: false,
-		engage: false,
-		respect: false,
-		honest: false,
+		commitment1: false,
+		commitment2: false,
+		commitment3: false,
+		commitment4: false,
+		commitment5: false,
+		commitment6: false,
+		commitment7: false,
+		commitment8: false,
 	});
 
 	// Check enrollment status
@@ -175,57 +179,113 @@ export default function SignaturePage() {
 					<CardContent className="space-y-4">
 						<div className="flex items-center space-x-3">
 							<Checkbox
-								id="complete"
-								checked={commitments.complete}
+								id="commitment1"
+								checked={commitments.commitment1}
 								className="rounded-xs"
 								onCheckedChange={(checked) =>
-									setCommitments({ ...commitments, complete: checked as boolean })
+									setCommitments({ ...commitments, commitment1: checked as boolean })
 								}
 							/>
-							<Label htmlFor="complete" className="text-sm font-normal leading-relaxed cursor-pointer">
-								I commit to completing all course modules and assignments to the best of my ability
+							<Label htmlFor="commitment1" className="text-sm font-normal leading-relaxed cursor-pointer">
+								Having learned procrastination is the number one reason for financial failure, I will begin today.
 							</Label>
 						</div>
 
 						<div className="flex items-center space-x-3">
 							<Checkbox
-								id="engage"
-								checked={commitments.engage}
+								id="commitment2"
+								checked={commitments.commitment2}
 								className="rounded-xs"
 								onCheckedChange={(checked) =>
-									setCommitments({ ...commitments, engage: checked as boolean })
+									setCommitments({ ...commitments, commitment2: checked as boolean })
 								}
 							/>
-							<Label htmlFor="engage" className="text-sm font-normal leading-relaxed cursor-pointer">
-								I will actively engage with the course materials and participate in learning activities
+							<Label htmlFor="commitment2" className="text-sm font-normal leading-relaxed cursor-pointer">
+								I will dedicate at least one hour per day toward my Financially Fit for Life program until completed and will continue with the daily meditations as outlined.
 							</Label>
 						</div>
 
 						<div className="flex items-center space-x-3">
 							<Checkbox
-								id="respect"
-								checked={commitments.respect}
+								id="commitment3"
+								checked={commitments.commitment3}
 								className="rounded-xs"
 								onCheckedChange={(checked) =>
-									setCommitments({ ...commitments, respect: checked as boolean })
+									setCommitments({ ...commitments, commitment3: checked as boolean })
 								}
 							/>
-							<Label htmlFor="respect" className="text-sm font-normal leading-relaxed cursor-pointer">
-								I will respect the intellectual property rights and not share course materials without permission
+							<Label htmlFor="commitment3" className="text-sm font-normal leading-relaxed cursor-pointer">
+								I will complete all 33 exercises to the best of my ability.
 							</Label>
 						</div>
 
 						<div className="flex items-center space-x-3">
 							<Checkbox
-								id="honest"
-								checked={commitments.honest}
+								id="commitment4"
+								checked={commitments.commitment4}
 								className="rounded-xs"
 								onCheckedChange={(checked) =>
-									setCommitments({ ...commitments, honest: checked as boolean })
+									setCommitments({ ...commitments, commitment4: checked as boolean })
 								}
 							/>
-							<Label htmlFor="honest" className="text-sm font-normal leading-relaxed cursor-pointer">
-								I will maintain academic honesty and integrity throughout the course
+							<Label htmlFor="commitment4" className="text-sm font-normal leading-relaxed cursor-pointer">
+								I will not prejudge the exercises, but will postpone my opinion until after completion.
+							</Label>
+						</div>
+
+						<div className="flex items-center space-x-3">
+							<Checkbox
+								id="commitment5"
+								checked={commitments.commitment5}
+								className="rounded-xs"
+								onCheckedChange={(checked) =>
+									setCommitments({ ...commitments, commitment5: checked as boolean })
+								}
+							/>
+							<Label htmlFor="commitment5" className="text-sm font-normal leading-relaxed cursor-pointer">
+								I will maintain a positive attitude throughout The Seven Steps.
+							</Label>
+						</div>
+
+						<div className="flex items-center space-x-3">
+							<Checkbox
+								id="commitment6"
+								checked={commitments.commitment6}
+								className="rounded-xs"
+								onCheckedChange={(checked) =>
+									setCommitments({ ...commitments, commitment6: checked as boolean })
+								}
+							/>
+							<Label htmlFor="commitment6" className="text-sm font-normal leading-relaxed cursor-pointer">
+								Recognizing that many begin a life changing program without finishing, I will beat all odds and finish the program by seeing it through to the end.
+							</Label>
+						</div>
+
+						<div className="flex items-center space-x-3">
+							<Checkbox
+								id="commitment7"
+								checked={commitments.commitment7}
+								className="rounded-xs"
+								onCheckedChange={(checked) =>
+									setCommitments({ ...commitments, commitment7: checked as boolean })
+								}
+							/>
+							<Label htmlFor="commitment7" className="text-sm font-normal leading-relaxed cursor-pointer">
+								I will make this commitment public by sharing it with a spouse or friend, which will strengthen my commitment and resolve. I will ask this person to witness my commitment below.
+							</Label>
+						</div>
+
+						<div className="flex items-center space-x-3">
+							<Checkbox
+								id="commitment8"
+								checked={commitments.commitment8}
+								className="rounded-xs"
+								onCheckedChange={(checked) =>
+									setCommitments({ ...commitments, commitment8: checked as boolean })
+								}
+							/>
+							<Label htmlFor="commitment8" className="text-sm font-normal leading-relaxed cursor-pointer">
+								I have read, understood, and accepted the above commitments.
 							</Label>
 						</div>
 

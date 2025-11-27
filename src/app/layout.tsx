@@ -9,7 +9,7 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-	title:"LMS Platform - Learn and Grow",
+	title:"Financially Fit World - Learn and Grow",
 	description:"Professional Learning Management System",
 };
 

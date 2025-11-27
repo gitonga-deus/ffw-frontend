@@ -1,4 +1,4 @@
-# LMS Platform Frontend
+# Financially Fit World Frontend
 
 A modern Learning Management System built with Next.js 14+, TypeScript, Tailwind CSS, and shadcn/ui.
 

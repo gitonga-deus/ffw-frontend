@@ -30,6 +30,15 @@ export function StudentNavbar() {
 		return pathname?.startsWith(path);
 	};
 
+	const getInitials = (name: string) => {
+		return name
+			.split(" ")
+			.map((n) => n[0])
+			.join("")
+			.toUpperCase()
+			.slice(0, 2);
+	};
+
 	return (
 		<header className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 sticky top-0 z-50">
 			<div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
@@ -92,9 +101,13 @@ export function StudentNavbar() {
 					<DropdownMenuTrigger asChild>
 						<Button variant="ghost" className="relative h-10 w-10 rounded-full">
 							<Avatar className="rounded-lg w-10 h-10">
-								<AvatarImage src={user.profile_image_url} alt={user.full_name} className="object-cover" />
-								<AvatarFallback>
-									{user.full_name.split("").map((n) => n[0]).join("")}
+								<AvatarImage 
+									src={user.profile_image_url || undefined} 
+									alt={user.full_name} 
+									className="object-cover" 
+								/>
+								<AvatarFallback className="bg-primary text-primary-foreground">
+									{getInitials(user.full_name)}
 								</AvatarFallback>
 							</Avatar>
 						</Button>

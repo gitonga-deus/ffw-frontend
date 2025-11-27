@@ -105,7 +105,7 @@ export default async function VerifyCertificatePage({
 
 							<div className="pt-4 border-t">
 								<p className="text-sm text-muted-foreground text-center">
-									This certificate has been verified as authentic and was issued by LMS Platform.
+									This certificate has been verified as authentic and was issued by Financially Fit World.
 								</p>
 							</div>
 
@@ -178,7 +178,7 @@ export default async function VerifyCertificatePage({
 			{/* Footer */}
 			<footer className="border-t mt-16 py-8">
 				<div className="container mx-auto px-4 text-center text-muted-foreground">
-					<p>&copy; {new Date().getFullYear()} LMS Platform. All rights reserved.</p>
+					<p>&copy; {new Date().getFullYear()} Financially Fit World. All rights reserved.</p>
 				</div>
 			</footer>
 		</div>
