@@ -56,31 +56,27 @@ export default function AdminDashboardPage() {
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		fetchAnalytics();
-		fetchPayments();
+		fetchData();
 	}, []);
 
-	const fetchAnalytics = async () => {
+	const fetchData = async () => {
 		try {
 			setLoading(true);
-			const data = await analyticsApi.getDashboardAnalytics();
-			setAnalytics(data);
+			setPaymentsLoading(true);
+			
+			// Fetch both in parallel instead of sequentially
+			const [analyticsData, paymentsResponse] = await Promise.all([
+				analyticsApi.getDashboardAnalytics(),
+				api.get("/admin/payments?page=1&page_size=20")
+			]);
+			
+			setAnalytics(analyticsData);
+			setPayments(paymentsResponse.data);
 		} catch (err) {
-			setError("Failed to load analytics data");
+			setError("Failed to load dashboard data");
 			console.error(err);
 		} finally {
 			setLoading(false);
-		}
-	};
-
-	const fetchPayments = async () => {
-		try {
-			setPaymentsLoading(true);
-			const response = await api.get("/admin/payments?page=1&page_size=20");
-			setPayments(response.data);
-		} catch (err) {
-			console.error("Failed to load payments", err);
-		} finally {
 			setPaymentsLoading(false);
 		}
 	};
