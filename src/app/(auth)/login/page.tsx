@@ -9,14 +9,16 @@ export default function LoginPage() {
 			<Card className="w-full max-w-lg">
 				<CardHeader className="space-y-1">
 					<div className="flex justify-center mb-4 pt-6">
-						<Image 
-							src="/logo/logo.png" 
-							alt="Logo" 
-							height={80} 
-							width={200} 
-							className="h-auto w-auto max-h-[60px]" 
-							priority
-						/>
+						<Link href="/" className="hover:opacity-80 transition-opacity">
+							<Image 
+								src="/logo/logo.png" 
+								alt="Logo" 
+								height={80} 
+								width={200} 
+								className="h-auto w-auto max-h-[60px]" 
+								priority
+							/>
+						</Link>
 					</div>
 					<CardDescription className="text-center">
 						Sign in to your account to continue learning

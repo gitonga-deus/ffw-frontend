@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from"react";
 import { useRouter } from"next/navigation";
+import Image from"next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from"@/components/ui/card";
 import { Button } from"@/components/ui/button";
 import { Mail, ArrowRight, CheckCircle } from"lucide-react";
@@ -31,6 +32,18 @@ export default function CheckEmailPage() {
 		<div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
 			<Card className="w-full max-w-lg! shadow-xs">
 				<CardHeader className="text-center mt-6">
+					<div className="flex justify-center mb-4">
+						<Link href="/" className="hover:opacity-80 transition-opacity">
+							<Image 
+								src="/logo/logo.png" 
+								alt="Logo" 
+								height={80} 
+								width={200} 
+								className="h-auto w-auto max-h-[60px]"
+								priority
+							/>
+						</Link>
+					</div>
 					<CardTitle className="text-2xl">Check Your Email</CardTitle>
 					<CardDescription>
 						We've sent you a verification link
