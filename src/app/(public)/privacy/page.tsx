@@ -91,31 +91,55 @@ const privacyData = [
 	{
 		id: "data-collection",
 		title: "1. What Data We Get",
-		content: `We collect data directly from you, automatically through your use of our Services, and from third parties.
+		content: `We collect data directly from you, automatically through your use of our Services, and from third parties.`,
+	},
+	{
+		id: "data-you-provide",
+		title: "2. Data You Provide to Us",
+		content: `We may collect various types of data depending on how you interact with the Services, including:
 
-• Account Data: To use certain features, you must create a user account. We collect your email, password, and account settings. Instructor accounts may also include name, occupation, ID verification details, date of birth, and other optional information.
-• Profile Data: You may provide additional details such as a profile photo, bio, website, or social links. Your profile data may be publicly visible.
-• Shared Content: When you post reviews, participate in discussions, or share work, this content may be publicly visible depending on your settings.
-• Educational Content Data: We collect information on the courses and content you engage with, including your submissions, progress, and completion records.
-• Payment Data: We collect limited data (e.g., billing name, ZIP code) and use third-party payment processors for secure transactions. Instructor Payments: We collect payment account information (e.g., PayPal email, tax data) to issue payments. Sensitive bank information is handled securely by third-party processors.
-• Connected Accounts: If you log in via third-party platforms (e.g., Facebook), we may access certain information per your permissions and the platform's policies.
-• Promotions, Surveys, and Sweepstakes: We collect participation data such as your name, email, or address to administer promotions or surveys.
-• Communications and Support: When you contact us, we collect information necessary to respond to your requests, including name, email, and message details.`,
+a. Account Data: To use certain features, you must create a user account. We collect your email, password, and account settings. Instructor accounts may also include name, occupation, ID verification details, date of birth, and other optional information.
+
+b. Profile Data: You may provide additional details such as a profile photo, bio, website, or social links. Your profile data may be publicly visible.
+
+c. Shared Content: When you post reviews, participate in discussions, or share work, this content may be publicly visible depending on your settings.
+
+d. Educational Content Data: We collect information on the courses and content you engage with, including your submissions, progress, and completion records.
+
+e. Payment Data:
+• Student Payments: We collect limited data (e.g., billing name, ZIP code) and use third-party payment processors for secure transactions.
+• Instructor Payments: We collect payment account information (e.g., PayPal email, tax data) to issue payments. Sensitive bank information is handled securely by third-party processors.
+
+f. Connected Accounts: If you log in via third-party platforms (e.g., Facebook), we may access certain information per your permissions and the platform's policies.
+
+g. Promotions, Surveys, and Sweepstakes: We collect participation data such as your name, email, or address to administer promotions or surveys.
+
+h. Communications and Support: When you contact us, we collect information necessary to respond to your requests, including name, email, and message details.`,
 	},
 	{
 		id: "automated-collection",
-		title: "2. Data We Collect Through Automated Means",
+		title: "3. Data We Collect Through Automated Means",
 		content: `When you access our Services, we automatically collect:
 
 • System Data: IP address, browser type, device info, and operating system.
 • Usage Data: Pages visited, time spent, content accessed, and click activity.
 • Approximate Geographic Data: Country or city derived from your IP address.
 
-These are collected via cookies and other tracking technologies (see Section 6). You may opt out of some types of tracking.`,
+These are collected via cookies and other tracking technologies (see Section 6).`,
+	},
+	{
+		id: "third-party-data",
+		title: "4. Data From Third Parties",
+		content: `We may obtain additional business contact or demographic data from third-party sources to supplement your profile or personalize your experience.`,
+	},
+	{
+		id: "how-we-get-data",
+		title: "5. How We Get Data About You",
+		content: `We use cookies, web beacons, and other tracking tools to gather and store data. You may opt out of some types of tracking.`,
 	},
 	{
 		id: "cookies",
-		title: "3. Cookies and Data Collection Tools",
+		title: "6. Cookies and Data Collection Tools",
 		content: `Cookies are small text files stored by your browser to remember your preferences and improve your experience.
 
 We and our service providers (e.g., Google Analytics) use cookies and tracking tools to collect system and usage data.
@@ -130,8 +154,13 @@ Types of Data Collection Tools:
 You can control cookie settings via your browser or device (see Section 12).`,
 	},
 	{
+		id: "why-tools",
+		title: "7. Why We Use Data Collection Tools",
+		content: `We use these tools to operate, secure, and improve our Services; deliver personalized content; and analyze performance and marketing effectiveness.`,
+	},
+	{
 		id: "data-usage",
-		title: "4. What We Use Your Data For",
+		title: "8. What We Use Your Data For",
 		content: `We use your data to:
 
 • Provide and manage Services
@@ -144,7 +173,7 @@ You can control cookie settings via your browser or device (see Section 12).`,
 	},
 	{
 		id: "data-sharing",
-		title: "5. Who We Share Your Data With",
+		title: "9. Who We Share Your Data With",
 		content: `We may share your data with:
 
 • Instructors and other users (where relevant)
@@ -158,14 +187,12 @@ You can control cookie settings via your browser or device (see Section 12).`,
 	},
 	{
 		id: "security",
-		title: "6. Security",
-		content: `We implement security measures appropriate to data sensitivity. However, no system is entirely secure—protect your password and account information carefully.
-
-We use industry-standard encryption and security protocols to protect your personal data. However, we cannot guarantee absolute security of your information transmitted over the internet.`,
+		title: "10. Security",
+		content: `We implement security measures appropriate to data sensitivity. However, no system is entirely secure—protect your password and account information carefully.`,
 	},
 	{
 		id: "your-rights",
-		title: "7. Your Rights",
+		title: "11. Your Rights",
 		content: `You can opt out of marketing emails, manage cookie preferences, or request access, correction, or deletion of your personal data.
 
 Parents may request deletion of data collected from children under applicable age limits.
@@ -177,8 +204,18 @@ You can:
 • Contact us at privacy@financiallyfitworld.com for data-related requests`,
 	},
 	{
+		id: "data-choices",
+		title: "12. Your Choices About Data Use",
+		content: `You can:
+
+• Opt out of promotional emails
+• Control cookies via your browser
+• Manage advertising preferences via ad network opt-out tools
+• Contact us at privacy@financiallyfitworld.com for data-related requests`,
+	},
+	{
 		id: "data-access",
-		title: "8. Accessing, Updating, and Deleting Your Data",
+		title: "13. Accessing, Updating, and Deleting Your Data",
 		content: `You may update your account data anytime by logging into your profile or contacting support. Account deletion requests can be submitted via our online form or by email.
 
 You can:
@@ -187,14 +224,12 @@ You can:
 	},
 	{
 		id: "children",
-		title: "9. Our Policy Concerning Children",
-		content: `Users under the legal age of consent (e.g., under 13 in the U.S.) may not create accounts. If we learn we've collected data from a minor, we will delete it promptly.
-
-If you are a parent or guardian and believe we have collected information from a child under the age of consent, please contact us immediately at privacy@financiallyfitworld.com.`,
+		title: "14. Our Policy Concerning Children",
+		content: `Users under the legal age of consent (e.g., under 13 in the U.S.) may not create accounts. If we learn we've collected data from a minor, we will delete it promptly.`,
 	},
 	{
 		id: "jurisdiction",
-		title: "10. Jurisdiction-Specific Rules",
+		title: "15. Jurisdiction-Specific Rules",
 		content: `Depending on your location, additional rights may apply (e.g., California, Australia, EEA, UK).
 
 • Users in California: Rights under the California Consumer Privacy Act (CCPA) include access, correction, deletion, and opt-out of data sale.
@@ -205,14 +240,26 @@ If you are a parent or guardian and believe we have collected information from a
 	},
 	{
 		id: "contact",
-		title: "11. Updates and Contact Information",
+		title: "16. Updates and Contact Information",
 		content: `We will notify you of material changes to this Privacy Policy via email or in-product notices.
 
-For any questions or concerns, contact: privacy@financiallyfitworld.com Financially Fit World – Privacy Team
-
-For questions, concerns, or disputes regarding this Privacy Policy, contact our Privacy Team (including our Data Protection Officer) at: privacy@financiallyfitworld.com
-
-Any capitalized terms not defined herein have meanings stated in our Terms of Use. In case of translation discrepancies, the English version prevails.`,
+For any questions or concerns, contact: privacy@financiallyfitworld.com
+Financially Fit World – Privacy Team`,
+	},
+	{
+		id: "modifications",
+		title: "17. Modifications to This Privacy Policy",
+		content: `We may update this Policy periodically. Continued use of the Services after updates signifies acceptance of the revised terms.`,
+	},
+	{
+		id: "interpretation",
+		title: "18. Interpretation",
+		content: `Any capitalized terms not defined herein have meanings stated in our Terms of Use. In case of translation discrepancies, the English version prevails.`,
+	},
+	{
+		id: "questions",
+		title: "19. Questions",
+		content: `For questions, concerns, or disputes regarding this Privacy Policy, contact our Privacy Team (including our Data Protection Officer) at: privacy@financiallyfitworld.com`,
 	},
 ]
 
@@ -225,7 +272,7 @@ export default function PrivacyPage() {
 				{/* Last Updated */}
 				<div className="mb-8 p-4 bg-muted rounded-lg">
 					<p className="text-sm text-muted-foreground">
-						<strong>Last Updated:</strong> October 24, 2025
+						<strong>Last Updated:</strong> November 25th, 2025
 					</p>
 				</div>
 
@@ -239,8 +286,10 @@ export default function PrivacyPage() {
 						This Privacy Policy covers our data collection practices and describes your rights regarding your personal
 						data. Unless otherwise stated, this Privacy Policy applies when you visit or use the Financially Fit World
 						website, mobile applications, APIs, or related services (the "Services"). It also applies to prospective
-						customers of our business and enterprise products. By using the Services, you agree to this Privacy Policy.
-						If you do not agree, please discontinue use of the Services.
+						customers of our business and enterprise products.
+					</p>
+					<p className="text-muted-foreground leading-relaxed mt-4">
+						By using the Services, you agree to this Privacy Policy. If you do not agree, please discontinue use of the Services.
 					</p>
 				</div>
 
