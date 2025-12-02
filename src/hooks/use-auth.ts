@@ -75,8 +75,10 @@ export function useAuth() {
 		},
 		enabled: typeof window !== 'undefined' && !!localStorage.getItem('access_token'),
 		retry: false,
-		staleTime: 1 * 60 * 1000, // 1 minute - shorter to catch enrollment changes faster
-		gcTime: 5 * 60 * 1000, // 5 minutes
+		staleTime: 5 * 60 * 1000, // 5 minutes - balance between freshness and performance
+		gcTime: 10 * 60 * 1000, // 10 minutes
+		refetchOnWindowFocus: true, // Refetch when user returns to tab
+		refetchOnReconnect: true, // Refetch when internet reconnects
 	});
 
 	// Sync fetched user data with store

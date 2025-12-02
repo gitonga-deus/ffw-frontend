@@ -42,15 +42,15 @@ api.interceptors.response.use(
 
 		const status = error.response.status;
 
-		// Handle 401 Unauthorized
+		// Handle 401 Unauthorized - try to refresh token
 		if (status === 401 && !originalRequest._retry) {
 			originalRequest._retry = true;
 
-			// Try to refresh token
 			const refreshToken = localStorage.getItem('refresh_token');
 			if (refreshToken) {
 				try {
 					// Create a new axios instance to avoid interceptor loops
+					// The backend expects the refresh token in the Authorization header
 					const refreshResponse = await axios.post(
 						`${API_BASE_URL}/auth/refresh`,
 						{},
@@ -67,13 +67,14 @@ api.interceptors.response.use(
 						localStorage.setItem('refresh_token', refresh_token);
 					}
 
-					// Retry original request with new token
+					// Retry original request with new access token
 					if (originalRequest.headers) {
 						originalRequest.headers.Authorization = `Bearer ${access_token}`;
 					}
 					return api(originalRequest);
 				} catch (refreshError) {
-					// Refresh failed, clear tokens and redirect to login
+					// Refresh failed (token expired or invalid), clear everything and redirect
+					console.error('Token refresh failed:', refreshError);
 					localStorage.removeItem('access_token');
 					localStorage.removeItem('refresh_token');
 					localStorage.removeItem('auth-storage');
@@ -83,7 +84,7 @@ api.interceptors.response.use(
 					return Promise.reject(refreshError);
 				}
 			} else {
-				// No refresh token, redirect to login
+				// No refresh token available, redirect to login
 				localStorage.removeItem('access_token');
 				localStorage.removeItem('refresh_token');
 				localStorage.removeItem('auth-storage');

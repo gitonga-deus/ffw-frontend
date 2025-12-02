@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 export function DashboardSkeleton() {
 	return (
 		<div className="container mx-auto px-4 py-8">
-			<div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+			<div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 				{/* Welcome Section Skeleton */}
 				<div className="space-y-2">
 					<Skeleton className="h-9 w-72" />
