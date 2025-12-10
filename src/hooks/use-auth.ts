@@ -126,6 +126,10 @@ export function useAuth() {
 	const { data: currentUser, isLoading: isLoadingUser, refetch: refetchUser } = useQuery({
 		queryKey: ['currentUser'],
 		queryFn: async () => {
+			const token = localStorage.getItem('access_token');
+			if (!token) {
+				throw new Error('No access token');
+			}
 			const response = await api.get<User>('/auth/me');
 			return response.data;
 		},
@@ -133,8 +137,9 @@ export function useAuth() {
 		retry: false,
 		staleTime: 5 * 60 * 1000, // 5 minutes - balance between freshness and performance
 		gcTime: 10 * 60 * 1000, // 10 minutes
-		refetchOnWindowFocus: true, // Refetch when user returns to tab
-		refetchOnReconnect: true, // Refetch when internet reconnects
+		refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary calls
+		refetchOnReconnect: false, // Don't refetch on reconnect to avoid unnecessary calls
+		refetchOnMount: false, // Don't refetch on mount if data exists
 	});
 
 	// Sync fetched user data with store

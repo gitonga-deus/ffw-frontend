@@ -99,7 +99,7 @@ api.interceptors.response.use(
 		const errorMessage = errorData?.error?.message || errorData?.message || getDefaultErrorMessage(status);
 
 		// Don't show toast for certain endpoints (to allow custom handling)
-		const silentEndpoints = ['/auth/login', '/auth/register', '/certificates/mine'];
+		const silentEndpoints = ['/auth/login', '/auth/register', '/certificates/mine', '/auth/me'];
 		const isSilent = silentEndpoints.some(endpoint => originalRequest.url?.includes(endpoint));
 
 		if (!isSilent) {
