@@ -4,12 +4,12 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
 	metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://financiallyfitworld.com'),
-	title: "Financial Literacy Course | Financially Fit World",
+	title: "Home | The Fast Track to Financial Health and Wealth",
 	description: "Master your financial future with our comprehensive financial literacy course. Learn essential money management skills, investing strategies, budgeting techniques, and achieve your financial goals through interactive modules and expert guidance.",
 	keywords: ["financial literacy", "money management", "investing", "budgeting", "personal finance", "financial education", "financial planning", "wealth building"],
 	authors: [{ name: "Financially Fit World" }],
 	openGraph: {
-		title: "Financial Literacy Course | Financially Fit World",
+		title: "Home | The Fast Track to Financial Health and Wealth",
 		description: "Master your financial future with our comprehensive financial literacy course. Learn essential money management skills, investing strategies, and achieve your financial goals.",
 		url: "https://financiallyfitworld.com",
 		siteName: "Financially Fit World",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Financial Literacy Course | Financially Fit World",
+		title: "Home | The Fast Track to Financial Health and Wealth",
 		description: "Master your financial future with our comprehensive financial literacy course. Learn essential money management skills and achieve your financial goals.",
 		images: ["/logo/logo.png"],
 		creator: "@financiallyfitworld",

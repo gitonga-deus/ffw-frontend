@@ -37,7 +37,7 @@ export default async function VerifyCertificatePage({
 
 	return (
 		<div className="min-h-screen bg-linear-to-b from-background to-muted/20">
-			<main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+			<main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 				<div className="text-center mb-8">
 					<h1 className="text-3xl font-bold mb-2">Certificate Verification</h1>
 					<p className="text-muted-foreground">
@@ -46,7 +46,7 @@ export default async function VerifyCertificatePage({
 				</div>
 
 				{certificate ? (
-					<Card className="border-2 shadow-xs rounded-sm">
+					<Card className="shadow-xs rounded-sm">
 						<CardHeader className="text-center pb-4 mb-4">
 							<div className="flex justify-center mb-4">
 								<div className="p-3">
@@ -61,7 +61,7 @@ export default async function VerifyCertificatePage({
 						<CardContent className="space-y-6">
 							<div className="grid gap-4">
 								{/* Student Name */}
-								<div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+								<div className="flex items-start gap-3 p-4 rounded bg-muted/50">
 									<User className="w-5 h-5 text-muted-foreground mt-0.5" />
 									<div className="flex-1">
 										<p className="text-sm text-muted-foreground mb-1">Student Name</p>
@@ -70,7 +70,7 @@ export default async function VerifyCertificatePage({
 								</div>
 
 								{/* Course Title */}
-								<div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+								<div className="flex items-start gap-3 p-4 rounded bg-muted/50">
 									<Award className="w-5 h-5 text-muted-foreground mt-0.5" />
 									<div className="flex-1">
 										<p className="text-sm text-muted-foreground mb-1">Course Title</p>
@@ -79,7 +79,7 @@ export default async function VerifyCertificatePage({
 								</div>
 
 								{/* Issue Date */}
-								<div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+								<div className="flex items-start gap-3 p-4 rounded bg-muted/50">
 									<Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
 									<div className="flex-1">
 										<p className="text-sm text-muted-foreground mb-1">Issue Date</p>
@@ -94,11 +94,11 @@ export default async function VerifyCertificatePage({
 								</div>
 
 								{/* Certificate ID */}
-								<div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+								<div className="flex items-start gap-3 p-4 rounded bg-muted/50">
 									<Award className="w-5 h-5 text-muted-foreground mt-0.5" />
 									<div className="flex-1">
 										<p className="text-sm text-muted-foreground mb-1">Certificate ID</p>
-										<p className="font-mono text-sm break-all">{certificate.certification_id}</p>
+										<p className="font-mono font-medium text-sm break-all">{certificate.certification_id}</p>
 									</div>
 								</div>
 							</div>
@@ -109,18 +109,18 @@ export default async function VerifyCertificatePage({
 								</p>
 							</div>
 
-							<div className="flex gap-3">
-								<Button asChild className="flex-1 h-10 rounded-md bg-[#049ad1] hover:bg-[#049ad1]/80">
+							<div className="flex gap-4">
+								<Button asChild className="flex-1 h-10 rounded bg-[#049ad1] hover:bg-[#049ad1]/80">
 									<Link href="/">View Course</Link>
 								</Button>
-								<Button asChild variant="outline" className="flex-1 rounded-md h-10">
+								<Button asChild variant="outline" className="flex-1 rounded h-10">
 									<Link href="/register">Enroll Now</Link>
 								</Button>
 							</div>
 						</CardContent>
 					</Card>
 				) : (
-					<Card className="border-2 border-destructive/50 rounded-sm shadow-xs">
+					<Card className="border-destructive/50 rounded-sm shadow-xs">
 						<CardHeader className="text-center pb-4 mb-4">
 							<div className="flex justify-center mb-4">
 								<div className="p-3">
@@ -135,12 +135,10 @@ export default async function VerifyCertificatePage({
 						<CardContent className="space-y-6">
 							<div className="text-center space-y-4">
 								<p className="text-muted-foreground">
-									The certificate ID <span className="font-mono font-semibold">{certId}</span> could not be verified.
+									The certificate ID <span className="font-mono font-semibold">{certId}</span> could not be verified. This could mean:
 								</p>
-								<p className="text-sm text-muted-foreground">
-									This could mean:
-								</p>
-								<ul className="text-sm text-muted-foreground text-left max-w-md mx-auto space-y-2">
+			
+								<ul className="text-sm text-muted-foreground text-left max-w-xl mx-auto space-y-2">
 									<li className="flex gap-2">
 										<span>•</span>
 										<span>The certificate ID is incorrect or has been mistyped</span>
@@ -161,10 +159,10 @@ export default async function VerifyCertificatePage({
 									If you believe this is an error, please contact support.
 								</p>
 								<div className="flex gap-3">
-									<Button asChild variant="outline" className="flex-1 h-10 rounded-md">
+									<Button asChild variant="outline" className="flex-1 h-10 rounded">
 										<Link href="/">Go to Home</Link>
 									</Button>
-									<Button asChild className="flex-1 h-10 rounded-md bg-[#049ad1] hover:bg-[#049ad1]/80">
+									<Button asChild className="flex-1 h-10 rounded bg-[#049ad1] hover:bg-[#049ad1]/80">
 										<Link href="/register">Enroll in Course</Link>
 									</Button>
 								</div>
@@ -174,13 +172,6 @@ export default async function VerifyCertificatePage({
 				)}
 
 			</main>
-
-			{/* Footer */}
-			<footer className="border-t mt-16 py-8">
-				<div className="container mx-auto px-4 text-center text-muted-foreground">
-					<p>&copy; {new Date().getFullYear()} Financially Fit World. All rights reserved.</p>
-				</div>
-			</footer>
 		</div>
 	);
 }

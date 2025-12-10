@@ -17,14 +17,20 @@ export function useAuth() {
 		},
 		onSuccess: (data) => {
 			if (!data.user) {
-				toast.error('Login failed: Invalid response from server');
+				toast.error('Login Failed', {
+					description: 'Invalid response from server. Please try again.',
+					duration: 5000,
+				});
 				return;
 			}
 
 			localStorage.setItem('access_token', data.access_token);
 			localStorage.setItem('refresh_token', data.refresh_token);
 			setUser(data.user);
-			toast.success('Login successful!');
+			toast.success('Welcome Back!', {
+				description: `Logged in as ${data.user.full_name}`,
+				duration: 3000,
+			});
 
 			if (data.user.role === 'admin') {
 				router.push('/admin/dashboard');
@@ -33,7 +39,31 @@ export function useAuth() {
 			}
 		},
 		onError: (error: any) => {
-			toast.error(error.response?.data?.error?.message || 'Login failed');
+			const errorDetail = error.response?.data?.detail || error.response?.data?.error?.message;
+			
+			// Make error messages more user-friendly
+			let title = 'Login Failed';
+			let description = 'Please check your credentials and try again.';
+			
+			if (errorDetail) {
+				if (errorDetail.includes('Invalid email or password')) {
+					title = 'Incorrect Credentials';
+					description = 'The email or password you entered is incorrect. Please try again.';
+				} else if (errorDetail.includes('verify your email')) {
+					title = 'Email Not Verified';
+					description = 'Please check your email and verify your account before logging in.';
+				} else if (errorDetail.includes('not found')) {
+					title = 'Account Not Found';
+					description = 'No account exists with this email address. Please register first.';
+				} else {
+					description = errorDetail;
+				}
+			}
+			
+			toast.error(title, {
+				description: description,
+				duration: 6000, // 6 seconds for errors
+			});
 		},
 	});
 
@@ -58,12 +88,38 @@ export function useAuth() {
 			return response.data;
 		},
 		onSuccess: (data) => {
-			toast.success('Registration successful! Please check your email to verify your account.');
+			toast.success('Registration Successful!', {
+				description: 'Please check your email to verify your account.',
+				duration: 5000,
+			});
 			// Redirect to a "check your email" page instead of verify-email
 			router.push('/check-email');
 		},
 		onError: (error: any) => {
-			toast.error(error.response?.data?.error?.message || 'Registration failed');
+			const errorDetail = error.response?.data?.detail || error.response?.data?.error?.message;
+			
+			let title = 'Registration Failed';
+			let description = 'Please check your information and try again.';
+			
+			if (errorDetail) {
+				if (errorDetail.includes('already exists') || errorDetail.includes('already registered')) {
+					title = 'Email Already Registered';
+					description = 'An account with this email already exists. Please login instead.';
+				} else if (errorDetail.includes('password')) {
+					title = 'Invalid Password';
+					description = errorDetail;
+				} else if (errorDetail.includes('phone')) {
+					title = 'Invalid Phone Number';
+					description = errorDetail;
+				} else {
+					description = errorDetail;
+				}
+			}
+			
+			toast.error(title, {
+				description: description,
+				duration: 6000,
+			});
 		},
 	});
 
@@ -91,7 +147,10 @@ export function useAuth() {
 	const logout = () => {
 		storeLogout();
 		router.push('/login');
-		toast.success('Logged out successfully');
+		toast.success('Logged Out', {
+			description: 'You have been successfully logged out.',
+			duration: 3000,
+		});
 	};
 
 	return {

@@ -16,7 +16,7 @@ import { CertificateViewer } from"@/components/certificate/CertificateViewer";
 export default function CertificatePage() {
 	const { user } = useAuth();
 
-	// Fetch certificate
+	// Fetch certificate with retry logic for race condition
 	const { data: certificate, isLoading, error } = useQuery<Certificate>({
 		queryKey: ["certificate"],
 		queryFn: async () => {
@@ -24,7 +24,7 @@ export default function CertificatePage() {
 				const response = await api.get("/certificates/mine");
 				return response.data;
 			} catch (err: any) {
-				// If 404, it means course not completed - this is expected
+				// If 404, it means course not completed or certificate still being generated
 				if (err.response?.status === 404) {
 					return null;
 				}
@@ -32,7 +32,16 @@ export default function CertificatePage() {
 			}
 		},
 		enabled: !!user?.is_enrolled,
-		retry: false,
+		retry: 3, // Retry up to 3 times for race condition
+		retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff: 1s, 2s, 4s
+		refetchInterval: (data) => {
+			// If no certificate yet, poll every 2 seconds for up to 30 seconds
+			if (!data) {
+				return 2000;
+			}
+			return false; // Stop polling once we have the certificate
+		},
+		refetchIntervalInBackground: false,
 	});
 
 	if (!user) {
@@ -68,10 +77,15 @@ export default function CertificatePage() {
 		return (
 			<div className="container mx-auto px-4 py-8">
 				<div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-					<div className="text-center py-12">
-						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-						<p className="mt-4 text-muted-foreground">Loading certificate...</p>
-					</div>
+					<Card className="shadow-xs">
+						<CardContent className="text-center py-12">
+							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+							<p className="mt-4 text-lg font-medium">Generating your certificate...</p>
+							<p className="mt-2 text-sm text-muted-foreground">
+								This may take a few moments. Please wait.
+							</p>
+						</CardContent>
+					</Card>
 				</div>
 			</div>
 		);
@@ -95,7 +109,7 @@ export default function CertificatePage() {
 							<p className="text-sm text-muted-foreground">
 								Your certificate will be automatically generated once you complete all course modules.
 							</p>
-							<Button asChild className="h-10 px-6!" variant={"outline"}>
+							<Button asChild className="h-10 px-6! rounded-sm" variant={"outline"}>
 								<Link href="/students/course">Continue Learning</Link>
 							</Button>
 						</CardContent>

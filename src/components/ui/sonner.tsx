@@ -18,25 +18,39 @@ const Toaster = ({ ...props }: ToasterProps) => {
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
       icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
+        success: <CircleCheckIcon className="size-5 text-green-600" />,
+        info: <InfoIcon className="size-5 text-blue-600" />,
+        warning: <TriangleAlertIcon className="size-5 text-yellow-600" />,
+        error: <OctagonXIcon className="size-5 text-red-600" />,
+        loading: <Loader2Icon className="size-5 animate-spin text-blue-600" />,
       }}
       toastOptions={{
         classNames: {
-          toast: "bg-white dark:bg-white border-border",
-          title: "text-foreground",
-          description: "text-muted-foreground",
-          success: "bg-white dark:bg-white text-green-600 dark:text-green-600",
-          error: "bg-white dark:bg-white text-red-600 dark:text-red-600",
-          warning: "bg-white dark:bg-white text-yellow-600 dark:text-yellow-600",
-          info: "bg-white dark:bg-white text-blue-600 dark:text-blue-600",
+          toast: "bg-white dark:bg-white border-border shadow-xs rounded",
+          title: "text-foreground dark:text-foreground font-semibold",
+          description: "text-muted-foreground dark:text-muted-foreground",
+          actionButton: "bg-primary text-primary-foreground rounded",
+          cancelButton: "bg-muted text-muted-foreground rounded",
         },
       }}
       style={
-        {"--normal-bg":"#ffffff","--normal-text":"var(--popover-foreground)","--normal-border":"var(--border)","--border-radius":"var(--radius)",
+        {
+          "--normal-bg":"#ffffff",
+          "--normal-text":"hsl(var(--foreground))",
+          "--normal-border":"hsl(var(--border))",
+          "--border-radius":"0.375rem",
+          "--success-bg":"#ffffff",
+          "--success-text":"#16a34a",
+          "--success-border":"#16a34a",
+          "--error-bg":"#ffffff",
+          "--error-text":"#dc2626",
+          "--error-border":"#dc2626",
+          "--warning-bg":"#ffffff",
+          "--warning-text":"#ca8a04",
+          "--warning-border":"#ca8a04",
+          "--info-bg":"#ffffff",
+          "--info-text":"#2563eb",
+          "--info-border":"#2563eb",
         } as React.CSSProperties
       }
       {...props}

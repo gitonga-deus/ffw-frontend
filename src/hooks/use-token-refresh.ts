@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth-store';
  */
 export function useTokenRefresh() {
 	const { isAuthenticated, setUser, logout } = useAuthStore();
-	const refreshTimeoutRef = useRef<NodeJS.Timeout>();
+	const refreshTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
 	useEffect(() => {
 		if (!isAuthenticated) {

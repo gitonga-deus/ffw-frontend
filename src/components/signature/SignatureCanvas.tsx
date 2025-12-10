@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from"react";
 import { Button } from"@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from"@/components/ui/card";
+import { ButtonGroup } from"@/components/ui/button-group";
 import { Pen, Eraser, RotateCcw, Check } from"lucide-react";
 
 interface SignatureCanvasProps {
@@ -159,32 +160,34 @@ export function SignatureCanvas({ onSave, isSubmitting }: SignatureCanvasProps) 
 					/>
 				</div>
 
-				<div className="flex flex-wrap gap-4">
-					<Button
-						type="button"
-						variant="outline"
-						className="h-10 px-6!"
-						onClick={undo}
-						disabled={history.length <= 1 || isSubmitting}
-					>
-						<RotateCcw className="mr-2 h-4 w-4" />
-						Undo
-					</Button>
-					<Button
-						type="button"
-						variant="outline"
-						className="h-10 px-6!"
-						onClick={clearCanvas}
-						disabled={!hasDrawn || isSubmitting}
-					>
-						<Eraser className="mr-2 h-4 w-4" />
-						Clear
-					</Button>
+				<div className="flex flex-wrap gap-4 items-center">
+					<ButtonGroup>
+						<Button
+							type="button"
+							variant="outline"
+							className="h-10 px-4!"
+							onClick={undo}
+							disabled={history.length <= 1 || isSubmitting}
+						>
+							<RotateCcw className="mr-2 h-4 w-4" />
+							Undo
+						</Button>
+						<Button
+							type="button"
+							variant="outline"
+							className="h-10 px-4!"
+							onClick={clearCanvas}
+							disabled={!hasDrawn || isSubmitting}
+						>
+							<Eraser className="mr-2 h-4 w-4" />
+							Clear
+						</Button>
+					</ButtonGroup>
 					<Button
 						type="button"
 						onClick={saveSignature}
 						disabled={!hasDrawn || isSubmitting}
-						className="ml-auto px-6! h-10 bg-[#049ad1] hover:bg-[#049ad1]/90"
+						className="ml-auto px-4! h-10 bg-[#049ad1] hover:bg-[#049ad1]/90 rounded-sm"
 					>
 						{isSubmitting ? (
 							<>

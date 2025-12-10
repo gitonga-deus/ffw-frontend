@@ -1,12 +1,13 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { VideoPlayer } from "@/components/course/VideoPlayer";
 import { PDFViewer } from "@/components/course/PDFViewer";
 import { RichTextRenderer } from "@/components/course/RichTextRenderer";
@@ -15,21 +16,30 @@ import { ExerciseViewer } from "@/components/course/ExerciseViewer";
 import { ProgressBar } from "@/components/course/ProgressBar";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, ChevronLast, ChevronLeft, ChevronRight, ChevronsLeftRight, Circle, Hourglass, InfoIcon, Lock, TableOfContents } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Circle, Hourglass, InfoIcon, Lock, TableOfContents } from "lucide-react";
 import { Content, Module, RichTextContent } from "@/types";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { useProgress } from "@/hooks/useProgress";
 
 export default function ModuleContentPage() {
 	const params = useParams();
 	const moduleId = params.moduleId as string;
 	const { user } = useAuth();
 	const router = useRouter();
-	const queryClient = useQueryClient();
 	const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
 	const [exerciseResponses, setExerciseResponses] = useState<Record<string, Record<string, string>>>({});
-	const [exerciseCompletionStatus, setExerciseCompletionStatus] = useState<Record<string, { isCompleted: boolean; submittedAt?: string }>>({});
 	const hasRedirectedToCertificate = useRef(false);
+	
+	// Use the new progress hook
+	const {
+		moduleProgress,
+		isContentCompleted,
+		isContentAccessible,
+		updateProgress,
+		updateProgressAsync,
+		isUpdating,
+	} = useProgress({ moduleId });
 
 	// Fetch enrollment status to check if course was already completed
 	const { data: enrollmentStatus } = useQuery({
@@ -71,16 +81,6 @@ export default function ModuleContentPage() {
 		enabled: !!user?.is_enrolled,
 	});
 
-	// Fetch user progress for this module
-	const { data: progressData } = useQuery({
-		queryKey: ["content-progress", moduleId],
-		queryFn: async () => {
-			const response = await api.get(`/progress/module/${moduleId}`);
-			return response.data;
-		},
-		enabled: !!user?.is_enrolled,
-	});
-
 	// Check if current module is accessible
 	const isModuleAccessible = (): boolean => {
 		if (!allModules || !module) return false;
@@ -96,24 +96,18 @@ export default function ModuleContentPage() {
 		return (previousModule as any).progress_percentage === 100;
 	};
 
-	// Check if content is accessible (not locked)
-	const isContentAccessible = (contentId: string): boolean => {
-		if (!contents || !progressData) return false;
+	// Check if content is accessible (not locked) - simplified with new hook
+	const checkContentAccessible = (contentId: string): boolean => {
+		if (!contents) return false;
+
+		// Already completed content is always accessible
+		if (isContentCompleted(contentId)) return true;
 
 		// First check if the module itself is accessible
 		if (!isModuleAccessible()) return false;
 
-		const contentIndex = contents.findIndex(c => c.id === contentId);
-		if (contentIndex === -1) return false;
-
-		// First content is always accessible (if module is accessible)
-		if (contentIndex === 0) return true;
-
-		// Check if previous content is completed
-		const previousContent = contents[contentIndex - 1];
-		const previousProgress = progressData.find((p: any) => p.content_id === previousContent.id);
-
-		return previousProgress?.is_completed || false;
+		// Use the hook's helper function with the content list
+		return isContentAccessible(contentId, contents);
 	};
 
 	// Redirect if not enrolled
@@ -133,7 +127,7 @@ export default function ModuleContentPage() {
 
 	// Check for course completion and redirect to certificate page (only on first completion)
 	useEffect(() => {
-		if (!allModules || !contents || !progressData || !enrollmentStatus || hasRedirectedToCertificate.current) return;
+		if (!allModules || !contents || !moduleProgress || !enrollmentStatus || hasRedirectedToCertificate.current) return;
 
 		// Only redirect if course wasn't already completed
 		const wasAlreadyCompleted = enrollmentStatus.enrollment?.completed_at;
@@ -144,10 +138,9 @@ export default function ModuleContentPage() {
 		
 		if (isLastModule) {
 			// Check if all content in this module is completed
-			const allContentCompleted = contents.every(content => {
-				const progress = progressData.find((p: any) => p.content_id === content.id);
-				return progress?.is_completed || false;
-			});
+			const allContentCompleted = contents.every(content => 
+				isContentCompleted(content.id)
+			);
 
 			// If all content is completed, redirect to certificate page
 			if (allContentCompleted) {
@@ -164,34 +157,9 @@ export default function ModuleContentPage() {
 				}, 500);
 			}
 		}
-	}, [allModules, contents, progressData, enrollmentStatus, moduleId, router]);
+	}, [allModules, contents, moduleProgress, enrollmentStatus, moduleId, router, isContentCompleted]);
 
-	// Update progress mutation
-	const updateProgressMutation = useMutation({
-		mutationFn: async ({
-			contentId,
-			isCompleted,
-			timeSpent,
-			lastPosition,
-		}: {
-			contentId: string;
-			isCompleted: boolean;
-			timeSpent: number;
-			lastPosition?: number;
-		}) => {
-			const response = await api.post(`/progress/${contentId}`, {
-				is_completed: isCompleted,
-				time_spent: timeSpent,
-				last_position: lastPosition,
-			});
-			return response.data;
-		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["content-progress", moduleId] });
-			queryClient.invalidateQueries({ queryKey: ["progress"] });
-			queryClient.invalidateQueries({ queryKey: ["course-modules"] });
-		},
-	});
+
 
 	// Submit exercise mutation
 	const submitExerciseMutation = useMutation({
@@ -219,28 +187,20 @@ export default function ModuleContentPage() {
 		},
 	});
 
+
+
 	// Auto-select first accessible content if none selected
+	// Only run on initial load, not when moduleProgress changes
 	useEffect(() => {
-		if (contents && contents.length > 0 && !selectedContentId && progressData) {
+		if (contents && contents.length > 0 && !selectedContentId && moduleProgress) {
 			// Find the first accessible content (first incomplete or first content)
-			const firstIncomplete = contents.find(c => !isContentCompleted(c.id) && isContentAccessible(c.id));
+			const firstIncomplete = contents.find(c => !isContentCompleted(c.id) && checkContentAccessible(c.id));
 			const contentToSelect = firstIncomplete || contents[0];
 			setSelectedContentId(contentToSelect.id);
 		}
-	}, [contents, selectedContentId, progressData]);
+	}, [contents, selectedContentId]); // Removed moduleProgress dependency to prevent re-runs
 
 	const selectedContent = contents?.find((c) => c.id === selectedContentId);
-
-	// Fetch exercise completion status when exercise content is selected
-	const { data: exerciseStatus } = useQuery({
-		queryKey: ["exercise-status", selectedContent?.exercise?.id],
-		queryFn: async () => {
-			if (!selectedContent?.exercise?.id) return null;
-			const response = await api.get(`/exercises/${selectedContent.exercise.id}/status`);
-			return response.data;
-		},
-		enabled: !!selectedContent?.exercise?.id && !!user?.is_enrolled,
-	});
 
 	// Get current content index and navigation info
 	const currentIndex = contents?.findIndex((c) => c.id === selectedContentId) ?? -1;
@@ -257,28 +217,27 @@ export default function ModuleContentPage() {
 	const nextModule = hasNextModule ? allModules?.[currentModuleIndex + 1] : null;
 
 	// Check if current module is completed (all content completed)
-	const isCurrentModuleCompleted = contents && progressData
-		? contents.every(content => {
-			const progress = progressData.find((p: any) => p.content_id === content.id);
-			return progress?.is_completed || false;
-		})
+	const isCurrentModuleCompleted = contents && moduleProgress
+		? contents.every(content => isContentCompleted(content.id))
 		: false;
 
 	// Can only navigate to next module if current module is completed
 	const canNavigateToNextModule = hasNextModule && isCurrentModuleCompleted;
 
 	const handleProgress = (contentId: string, timeSpent: number, lastPosition: number) => {
-		updateProgressMutation.mutate({
+		updateProgress({
 			contentId,
-			isCompleted: false,
-			timeSpent,
-			lastPosition,
+			data: {
+				is_completed: false,
+				time_spent: timeSpent,
+				last_position: lastPosition,
+			},
 		});
 	};
 
-	const handleComplete = (contentId: string, navigateToNext: boolean = false) => {
+	const handleComplete = async (contentId: string, navigateToNext: boolean = false) => {
 		// Prevent duplicate completion calls
-		if (updateProgressMutation.isPending) {
+		if (isUpdating) {
 			return;
 		}
 
@@ -290,29 +249,25 @@ export default function ModuleContentPage() {
 			return;
 		}
 
-		updateProgressMutation.mutate(
-			{
+		try {
+			// Wait for the server to confirm before navigating
+			await updateProgressAsync({
 				contentId,
-				isCompleted: true,
-				timeSpent: 0,
-			},
-			{
-				onSuccess: () => {
-					toast.success("Content marked as complete! 🎉");
+				data: {
+					is_completed: true,
+					time_spent: 0,
+				},
+			});
 
-					// Navigate to next content if requested and available
-					if (navigateToNext && nextContent) {
-						setTimeout(() => {
-							setSelectedContentId(nextContent.id);
-						}, 500); // Small delay for better UX
-					}
-				},
-				onError: (error: any) => {
-					console.error("Failed to mark content as complete:", error);
-					toast.error("Failed to mark content as complete. Please try again.");
-				},
+			// Only navigate after successful server confirmation
+			if (navigateToNext && nextContent) {
+				setSelectedContentId(nextContent.id);
 			}
-		);
+		} catch (error) {
+			// Error is already handled by the mutation's onError
+			// Just prevent navigation on failure
+			console.error('Failed to mark content as complete:', error);
+		}
 	};
 
 	const handleNavigate = (direction: "previous" | "next") => {
@@ -366,10 +321,6 @@ export default function ModuleContentPage() {
 		}
 	};
 
-	const isContentCompleted = (contentId: string) => {
-		return progressData?.find((p: any) => p.content_id === contentId)?.is_completed || false;
-	};
-
 	if (!user) {
 		return null;
 	}
@@ -379,19 +330,19 @@ export default function ModuleContentPage() {
 			<div className="max-w-6xl px-4 sm:px-6 lg:px-8 mx-auto space-y-6">
 				{/* Module Navigation Header */}
 				<div className="flex items-center justify-between gap-4">
-					<Button asChild variant="outline" className="rounded-md">
+					<Button asChild variant="outline" className="rounded-sm h-10 px-4!">
 						<Link href="/students/course">
 							<ArrowLeft className="h-4 w-4 mr-2" />
 							All Modules
 						</Link>
 					</Button>
 
-					<div className="flex items-center gap-2">
+					<ButtonGroup>
 						<Button
 							asChild
 							variant="outline"
 							disabled={!hasPreviousModule}
-							className="rounded-md"
+							className="h-10 px-4! rounded-sm"
 						>
 							{hasPreviousModule ? (
 								<Link href={`/students/course/${previousModule?.id}`}>
@@ -410,7 +361,7 @@ export default function ModuleContentPage() {
 							asChild={canNavigateToNextModule}
 							variant="outline"
 							disabled={!canNavigateToNextModule}
-							className="rounded-md px-4!"
+							className="h-10 px-4! rounded-sm"
 							onClick={() => {
 								if (!isCurrentModuleCompleted && hasNextModule) {
 									toast.error("Complete all content in this module to unlock the next module");
@@ -435,7 +386,7 @@ export default function ModuleContentPage() {
 								</span>
 							)}
 						</Button>
-					</div>
+					</ButtonGroup>
 				</div>
 
 				{/* Module Title */}
@@ -447,15 +398,15 @@ export default function ModuleContentPage() {
 				</div>
 
 				{/* Module Progress */}
-				{contents && progressData && (
+				{contents && moduleProgress && (
 					<div className="space-y-2">
 						<ProgressBar
 							progressPercentage={
 								Math.round(
-									(progressData.filter((p: any) => p.is_completed).length / contents.length) * 100
+									(moduleProgress.filter((p) => p.is_completed).length / contents.length) * 100
 								) || 0
 							}
-							completedModules={progressData.filter((p: any) => p.is_completed).length}
+							completedModules={moduleProgress.filter((p) => p.is_completed).length}
 							totalModules={contents.length}
 							showDetails={false}
 						/>
@@ -481,7 +432,7 @@ export default function ModuleContentPage() {
 					{/* Content Display Area */}
 					<div className="">
 						{selectedContent ? (
-							!isContentAccessible(selectedContent.id) && !isContentCompleted(selectedContent.id) ? (
+							!checkContentAccessible(selectedContent.id) && !isContentCompleted(selectedContent.id) ? (
 								<Card className="rounded-md shadow-xs border-yellow-500/50">
 									<CardHeader>
 										<div className="flex items-start gap-3">
@@ -498,7 +449,7 @@ export default function ModuleContentPage() {
 										<Button
 											onClick={() => {
 												// Find and select the first incomplete accessible content
-												const firstIncomplete = contents?.find(c => !isContentCompleted(c.id) && isContentAccessible(c.id));
+												const firstIncomplete = contents?.find(c => !isContentCompleted(c.id) && checkContentAccessible(c.id));
 												if (firstIncomplete) {
 													setSelectedContentId(firstIncomplete.id);
 												}
@@ -516,7 +467,7 @@ export default function ModuleContentPage() {
 										<div className="flex items-start justify-between">
 											<div className="flex-1">
 												<CardTitle>{selectedContent.title}</CardTitle>
-												<Badge variant="outline" className="mt-2 capitalize px-3 py-0.5">
+												<Badge variant="secondary" className="mt-2 capitalize px-3 py-0.5">
 													{selectedContent.content_type === "exercise" 
 														? "Exercise" 
 														: selectedContent.content_type.replace("_", " ")}
@@ -589,25 +540,25 @@ export default function ModuleContentPage() {
 													exerciseId={selectedContent.exercise.id}
 													embedCode={selectedContent.exercise.embed_code}
 													formTitle={selectedContent.exercise.form_title}
-													isCompleted={exerciseStatus?.is_completed || false}
+													isCompleted={isContentCompleted(selectedContent.id)}
 													onProgress={(timeSpent) =>
 														handleProgress(selectedContent.id, timeSpent, 0)
 													}
 												/>
 											)}
 
-										<div className="flex justify-between items-center pt-4">
+										<div className="flex justify-between items-center mt-4">
 											{/* Mark as Complete Button */}
 											{!isContentCompleted(selectedContent.id) ? (
 												<Button
 													onClick={() => handleComplete(selectedContent.id, hasNext)}
-													disabled={updateProgressMutation.isPending}
-													className="rounded-md bg-[#049ad1] hover:bg-[#049ad1]/90"
+													disabled={isUpdating}
+													className="rounded-sm bg-[#049ad1] hover:bg-[#049ad1]/90 h-10 px-4!"
 												>
-													{updateProgressMutation.isPending ? (
+													{isUpdating ? (
 														<>
 															<Hourglass className="w-4 h-4 mr-2 animate-spin" />
-															Saving...
+															{hasNext ? "Saving & Loading Next..." : "Saving..."}
 														</>
 													) : hasNext ? (
 														"Mark Complete & Continue"
@@ -624,13 +575,12 @@ export default function ModuleContentPage() {
 
 											{/* Content Navigation Header */}
 											{selectedContent && (
-												<div className="flex items-center justify-between gap-4">
-
+												<ButtonGroup>
 													<Button
 														onClick={() => handleNavigate("previous")}
 														disabled={!hasPrevious}
 														variant="outline"
-														className="rounded-md px-4!"
+														className="px-4! h-10 rounded-sm"
 													>
 														<ChevronLeft className="h-4 w-4 mr-1" />
 														Previous
@@ -640,13 +590,12 @@ export default function ModuleContentPage() {
 														onClick={() => handleNavigate("next")}
 														disabled={!hasNext}
 														variant="outline"
-														className="rounded-md px-4!"
+														className="px-4! h-10 rounded-sm"
 													>
 														Next
 														<ChevronRight className="h-4 w-4 ml-1" />
 													</Button>
-
-												</div>
+												</ButtonGroup>
 											)}
 										</div>
 									</CardContent>
@@ -661,7 +610,7 @@ export default function ModuleContentPage() {
 						)}
 					</div>
 
-					<div className="mt-10 max-w-4xl mx-auto">
+					<div className="mt-10 max-w-5xl mx-auto">
 						<Card className="rounded-sm shadow-none border-0">
 							<CardHeader>
 								<CardTitle className="text-lg flex items-center gap-4">
@@ -677,7 +626,7 @@ export default function ModuleContentPage() {
 								) : contents && contents.length > 0 ? (
 									<div className="space-y-1">
 										{contents.map((content, index) => {
-											const isAccessible = isContentAccessible(content.id);
+											const isAccessible = checkContentAccessible(content.id);
 											const isCompleted = isContentCompleted(content.id);
 											const isLocked = !isAccessible && !isCompleted;
 

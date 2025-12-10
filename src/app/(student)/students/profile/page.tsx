@@ -24,6 +24,7 @@ import { Separator } from"@/components/ui/separator";
 import { toast } from"sonner";
 import { Upload, Loader2 } from"lucide-react";
 import { useState, useRef } from"react";
+import { getInitials } from"@/lib/utils";
 
 // Profile update schema
 const profileSchema = z.object({
@@ -168,14 +169,14 @@ export default function ProfilePage() {
 							<form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
 								{/* Profile Image */}
 								<div className="flex items-center gap-6">
-									<Avatar className="h-24 w-24 rounded-lg">
+									<Avatar className="h-20 w-20 rounded-lg">
 										<AvatarImage
 											src={previewUrl || user.profile_image_url}
 											alt={user.full_name}
 											className="object-cover object-center"
 										/>
-										<AvatarFallback className="text-2xl">
-											{user.full_name.split("").map((n) => n[0]).join("")}
+										<AvatarFallback className="text-3xl bg-primary text-white font-semibold">
+											{getInitials(user.full_name)}
 										</AvatarFallback>
 									</Avatar>
 									<div className="flex-1">
@@ -198,7 +199,7 @@ export default function ProfilePage() {
 															<Button
 																type="button"
 																variant="outline"
-																className="px-6!"
+																className="px-4! h-10 rounded-sm"
 																onClick={() => fileInputRef.current?.click()}
 															>
 																<Upload className="mr-2 h-4 w-4" />
@@ -274,7 +275,7 @@ export default function ProfilePage() {
 								<Button
 									type="submit"
 									disabled={updateProfileMutation.isPending}
-									className="w-full sm:w-auto h-10 bg-[#049ad1] px-8"
+									className="w-full sm:w-auto h-10 bg-[#049ad1] px-8! rounded-sm"
 								>
 									{updateProfileMutation.isPending && (
 										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -345,7 +346,7 @@ export default function ProfilePage() {
 								<Button
 									type="submit"
 									disabled={changePasswordMutation.isPending}
-									className="w-full sm:w-auto px-8 bg-[#049ad1] h-10"
+									className="w-full sm:w-auto px-8! bg-[#049ad1] h-10 rounded-sm"
 								>
 									{changePasswordMutation.isPending && (
 										<Loader2 className="mr-2 h-4 w-4 animate-spin" />

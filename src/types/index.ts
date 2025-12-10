@@ -105,24 +105,6 @@ export interface Question {
   placeholder?: string;
 }
 
-// Progress types
-export interface UserProgress {
-  id: string;
-  user_id: string;
-  content_id: string;
-  is_completed: boolean;
-  time_spent: number;
-  last_position?: number;
-  completed_at?: string;
-}
-
-export interface ProgressOverview {
-  progress_percentage: number;
-  completed_modules: number;
-  total_modules: number;
-  last_accessed_content?: Content;
-}
-
 // Enrollment types
 export interface Enrollment {
   id: string;

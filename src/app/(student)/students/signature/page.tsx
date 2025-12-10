@@ -141,7 +141,7 @@ export default function SignaturePage() {
 			<div className="max-w-6xl px-4 sm:px-6 lg:px-8 mx-auto space-y-6">
 				{/* Header */}
 				<div className="text-left space-y-2">
-					<h1 className="text-3xl font-bold tracking-tight">Complete Your Enrollment</h1>
+					<h1 className="text-3xl font-bold">Complete Your Enrollment</h1>
 					<p className="text-muted-foreground">
 						One final step: Please provide your digital signature to confirm your
 						commitment to the course

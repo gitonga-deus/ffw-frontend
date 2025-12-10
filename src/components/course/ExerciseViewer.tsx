@@ -183,7 +183,8 @@ export function ExerciseViewer({
 			{/* Help Text */}
 			{!isCompleted && !error && (
 				<div className="text-sm text-muted-foreground text-center p-3 bg-muted/50 rounded">
-					Complete and submit the form above. Your progress will be tracked automatically.
+					Complete and submit the form above. Your submission will be sent via email. 
+					After submitting, click "Mark Complete" below to track your progress.
 				</div>
 			)}
 		</div>

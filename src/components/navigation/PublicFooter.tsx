@@ -121,8 +121,8 @@ export function PublicFooter() {
 							© 2022 - {new Date().getFullYear()} Financially Fit World. All rights reserved.
 						</p>
 
-						<div className="flex flex-col md:flex-row items-center space-x-8 mb-4 md:mb-0 text-gray-400">
-							<div className="flex items-center space-x-2 text-sm">
+						<div className="flex flex-col md:flex-row items-center space-x-6 mb-4 md:mb-0 text-gray-400 divide-x divide-muted-foreground">
+							<div className="flex items-center space-x-2 text-sm pr-4">
 								<Mail className="h-4 w-4" />
 								<span>support@financiallyfitworld.com</span>
 							</div>

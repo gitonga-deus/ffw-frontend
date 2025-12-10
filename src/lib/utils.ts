@@ -4,3 +4,17 @@ import { twMerge } from "tailwind-merge"
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs))
 }
+
+/**
+ * Get initials from a full name (max 2 characters)
+ * @param name - Full name string
+ * @returns Uppercase initials (e.g., "John Doe" -> "JD")
+ */
+export function getInitials(name: string): string {
+	return name
+		.split(" ")
+		.map((n) => n[0])
+		.join("")
+		.toUpperCase()
+		.slice(0, 2);
+}

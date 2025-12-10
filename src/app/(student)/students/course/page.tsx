@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
+import { useProgress } from "@/hooks/useProgress";
 
 import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +15,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { NotebookPen, Lock } from "lucide-react";
 import { Module } from "@/types";
-import { toast } from "sonner";
 
 interface ModuleWithProgress extends Module {
 	content_count: number;
@@ -26,7 +26,12 @@ export default function CoursePage() {
 	const { user } = useAuth();
 	const router = useRouter();
 
-	// Check enrollment status including signature
+	// Use new progress hook - only enabled for enrolled users
+	const { overallProgress, isLoadingOverall } = useProgress({ 
+		enabled: user?.is_enrolled ?? false 
+	});
+
+	// Check enrollment status including signature - ALWAYS call this hook
 	const { data: enrollmentStatus, isLoading: enrollmentLoading } = useQuery({
 		queryKey: ["enrollment-status"],
 		queryFn: async () => {
@@ -36,21 +41,7 @@ export default function CoursePage() {
 		enabled: !!user?.is_enrolled,
 	});
 
-	// Redirect if not enrolled
-	React.useEffect(() => {
-		if (user && !user.is_enrolled) {
-			router.push("/students/dashboard");
-		}
-	}, [user, router]);
-
-	// Redirect to signature page if signature not completed
-	React.useEffect(() => {
-		if (user?.is_enrolled && enrollmentStatus && !enrollmentStatus.has_signature) {
-			router.push("/students/signature");
-		}
-	}, [user, enrollmentStatus, router]);
-
-	// Fetch all modules
+	// Fetch all modules - ALWAYS call this hook
 	const { data: modules, isLoading: modulesLoading } = useQuery<ModuleWithProgress[]>({
 		queryKey: ["course-modules"],
 		queryFn: async () => {
@@ -62,22 +53,41 @@ export default function CoursePage() {
 		refetchOnWindowFocus: true
 	});
 
-	// Fetch progress overview
-	const { data: progress } = useQuery({
-		queryKey: ["progress"],
-		queryFn: async () => {
-			const response = await api.get("/progress");
-			return response.data;
-		},
-		enabled: !!user?.is_enrolled && !!enrollmentStatus?.has_signature,
-		refetchInterval: 30000,
-		refetchOnWindowFocus: true,
-	});
+	// Redirect if not enrolled - ALWAYS call this effect
+	React.useEffect(() => {
+		if (user && !user.is_enrolled) {
+			router.push("/students/dashboard");
+		}
+	}, [user, router]);
+
+	// Redirect to signature page if signature not completed - ALWAYS call this effect
+	React.useEffect(() => {
+		if (user?.is_enrolled && enrollmentStatus && !enrollmentStatus.has_signature) {
+			router.push("/students/signature");
+		}
+	}, [user, enrollmentStatus, router]);
 
 	// Show nothing while checking enrollment, signature, or redirecting
 	if (!user || !user.is_enrolled || enrollmentLoading || !enrollmentStatus?.has_signature) {
 		return null;
 	}
+
+	// Merge module data with progress data from new system
+	// Computed inline after early return (not a hook, so it's safe here)
+	const modulesWithProgress = !modules || !overallProgress 
+		? modules 
+		: modules.map(module => {
+				const progressData = overallProgress.modules.find(m => m.module_id === module.id);
+				if (progressData) {
+					return {
+						...module,
+						completed_count: progressData.completed_content,
+						content_count: progressData.total_content,
+						progress_percentage: Math.round(progressData.progress_percentage),
+					};
+				}
+				return module;
+			});
 
 	return (
 		<div className="py-8">
@@ -94,11 +104,11 @@ export default function CoursePage() {
 					</div>
 
 					{/* Overall Progress Bar */}
-					{progress && (
+					{overallProgress && (
 						<ProgressBar
-							progressPercentage={progress.progress_percentage}
-							completedModules={progress.completed_modules}
-							totalModules={progress.total_modules}
+							progressPercentage={overallProgress.progress_percentage}
+							completedModules={overallProgress.completed_modules}
+							totalModules={overallProgress.total_modules}
 							showDetails={true}
 						/>
 					)}
@@ -106,18 +116,20 @@ export default function CoursePage() {
 
 				{/* Modules List */}
 				<div className="space-y-4">
-					{modulesLoading ? (
+					{modulesLoading || isLoadingOverall ? (
 						<div className="text-center py-12">
 							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
 							<p className="text-muted-foreground">Loading modules...</p>
 						</div>
-					) : modules && modules.length > 0 ? (
-						modules.map((module, index) => {
-							// Check if module is accessible (first module or previous module completed)
-							const isAccessible = index === 0 || (modules[index - 1]?.progress_percentage === 100);
+					) : modulesWithProgress && modulesWithProgress.length > 0 ? (
+						modulesWithProgress.map((module, index) => {
+							// Get progress data from new system
+							const moduleProgress = overallProgress?.modules.find(m => m.module_id === module.id);
+							// Check if module is accessible using new progress system
+							const isAccessible = moduleProgress?.is_accessible ?? (index === 0 || (modulesWithProgress[index - 1]?.progress_percentage === 100));
 
 							return (
-								<Card key={module.id} className={`hover:shadow-sm transition-shadow shadow-xs ${!isAccessible ? 'opacity-60' : ''}`}>
+								<Card key={module.id} className={`hover:shadow-sm transition-shadow shadow-xs rounded-sm ${!isAccessible ? 'opacity-60' : ''}`}>
 									<CardHeader>
 										<div className="flex items-start justify-between">
 											<div className="flex items-start gap-4 flex-1">
@@ -155,7 +167,7 @@ export default function CoursePage() {
 
 														{/* Action Button */}
 														{isAccessible ? (
-															<Button asChild className="w-full sm:w-auto px-4.5! h-10" variant={"outline"}>
+															<Button asChild className="w-full sm:w-auto px-6! rounded-sm h-10" variant={"outline"}>
 																<Link href={`/students/course/${module.id}`}>
 																	<NotebookPen className="mr-2 h-4 w-4" />
 																	{module.progress_percentage === 0
@@ -176,7 +188,7 @@ export default function CoursePage() {
 											</div>
 											<div className="flex items-center gap-2">
 												{!isAccessible ? (
-													<Badge variant="destructive" className="gap-1 py-1 border-muted-foreground/50">
+													<Badge variant="destructive" className="gap-1 px-3 py-1 border-muted-foreground/50">
 														Locked
 													</Badge>
 												) : module.progress_percentage === 100 ? (
@@ -188,7 +200,7 @@ export default function CoursePage() {
 														In Progress
 													</Badge>
 												) : (
-													<Badge variant="outline" className="gap-1 py-1">
+													<Badge variant="outline" className="gap-1 py-1 px-3">
 														Not Started
 													</Badge>
 												)}

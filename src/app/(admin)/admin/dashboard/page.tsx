@@ -52,7 +52,6 @@ export default function AdminDashboardPage() {
 	const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
 	const [payments, setPayments] = useState<PaymentListItem[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [paymentsLoading, setPaymentsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
@@ -62,22 +61,17 @@ export default function AdminDashboardPage() {
 	const fetchData = async () => {
 		try {
 			setLoading(true);
-			setPaymentsLoading(true);
 			
-			// Fetch both in parallel instead of sequentially
-			const [analyticsData, paymentsResponse] = await Promise.all([
-				analyticsApi.getDashboardAnalytics(),
-				api.get("/admin/payments?page=1&page_size=20")
-			]);
+			// Fetch both analytics and payments in a single request
+			const response = await api.get("/admin/analytics/dashboard-with-payments?page=1&page_size=20");
 			
-			setAnalytics(analyticsData);
-			setPayments(paymentsResponse.data);
+			setAnalytics(response.data.analytics);
+			setPayments(response.data.payments);
+			setLoading(false);
 		} catch (err) {
 			setError("Failed to load dashboard data");
 			console.error(err);
-		} finally {
 			setLoading(false);
-			setPaymentsLoading(false);
 		}
 	};
 
@@ -512,11 +506,7 @@ export default function AdminDashboardPage() {
 							</div>
 						</CardHeader>
 						<CardContent>
-							{paymentsLoading ? (
-								<div className="text-center py-8">
-									<p className="text-muted-foreground">Loading payments...</p>
-								</div>
-							) : payments.length > 0 ? (
+							{payments.length > 0 ? (
 								<Table>
 									<TableHeader>
 										<TableRow>

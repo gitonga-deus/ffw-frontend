@@ -52,14 +52,14 @@ export function InlineError({
 	onRetry?: () => void;
 }) {
 	return (
-		<div className="flex items-center justify-center p-8 border border-destructive/50 rounded-lg bg-destructive/5">
+		<div className="flex items-center justify-center p-8 border border-destructive/20 rounded-lg bg-destructive/5">
 			<div className="text-center space-y-3">
 				<div className="flex items-center justify-center gap-2 text-destructive">
 					<AlertTriangle className="h-5 w-5" />
 					<p className="font-medium">{message}</p>
 				</div>
 				{onRetry && (
-					<Button onClick={onRetry} variant="outline" size="sm">
+					<Button onClick={onRetry} variant="outline" className="rounded px-6!">
 						<RefreshCw className="mr-2 h-4 w-4" />
 						Retry
 					</Button>

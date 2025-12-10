@@ -22,7 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <TokenRefreshProvider />
       {children}
-      {mounted && <Toaster position="top-right" richColors closeButton />}
+      {mounted && <Toaster position="top-right" richColors />}
     </QueryClientProvider>
   );
 }

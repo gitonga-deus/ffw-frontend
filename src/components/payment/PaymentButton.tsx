@@ -75,7 +75,7 @@ export function PaymentButton({ className }: PaymentButtonProps) {
 			<Button
 				onClick={handlePayment}
 				disabled={initiatePaymentMutation.isPending || loadingPrice}
-				className={className}
+				className={`${className} rounded px-6!`}
 				size="lg"
 			>
 				{initiatePaymentMutation.isPending ? (
@@ -127,18 +127,18 @@ export function PaymentButton({ className }: PaymentButtonProps) {
 							After successful payment, you&apos;ll be asked to provide your digital
 							signature to complete the enrollment process.
 						</p>
-						<div className="flex gap-3">
+						<div className="flex items-center justify-between gap-4">
 							<Button
 								variant="outline"
 								onClick={() => setShowDialog(false)}
-								className="flex-1 h-10"
+								className="h-10 rounded px-6!"
 							>
 								Cancel
 							</Button>
 							<Button
 								onClick={confirmPayment}
 								disabled={initiatePaymentMutation.isPending}
-								className="flex-1 bg-[#049ad1] hover:bg-[#049ad1]/80 h-10"
+								className="bg-[#049ad1] hover:bg-[#049ad1]/80 h-10 px-6! rounded"
 							>
 								{initiatePaymentMutation.isPending ? (
 									<>
