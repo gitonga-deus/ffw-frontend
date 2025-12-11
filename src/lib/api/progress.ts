@@ -224,3 +224,23 @@ export async function fetchContentProgress(
     handleProgressError(error);
   }
 }
+
+/**
+ * Track module access for "resume where you left off"
+ * 
+ * @param moduleId - The ID of the module being accessed
+ * @returns Success message
+ * @throws {ProgressError} When the tracking fails
+ */
+export async function trackModuleAccess(
+  moduleId: string
+): Promise<{ message: string }> {
+  try {
+    const response = await api.post<{ message: string }>(`/progress/access/${moduleId}`);
+    return response.data;
+  } catch (error) {
+    // Silently fail - this is not critical
+    console.warn('Failed to track module access:', error);
+    return { message: 'Failed to track' };
+  }
+}

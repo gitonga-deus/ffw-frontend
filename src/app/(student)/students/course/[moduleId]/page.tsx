@@ -30,9 +30,11 @@ export default function ModuleContentPage() {
 	const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
 	const [exerciseResponses, setExerciseResponses] = useState<Record<string, Record<string, string>>>({});
 	const hasRedirectedToCertificate = useRef(false);
+	const progressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	
 	// Use the new progress hook
 	const {
+		overallProgress,
 		moduleProgress,
 		isContentCompleted,
 		isContentAccessible,
@@ -125,6 +127,25 @@ export default function ModuleContentPage() {
 		}
 	}, [allModules, module]);
 
+	// Track module access for "resume where you left off"
+	useEffect(() => {
+		if (moduleId && user?.is_enrolled) {
+			// Import the tracking function
+			import('@/lib/api/progress').then(({ trackModuleAccess }) => {
+				trackModuleAccess(moduleId);
+			});
+		}
+	}, [moduleId, user]);
+
+	// Cleanup progress timeout on unmount
+	useEffect(() => {
+		return () => {
+			if (progressTimeoutRef.current) {
+				clearTimeout(progressTimeoutRef.current);
+			}
+		};
+	}, []);
+
 	// Check for course completion and redirect to certificate page (only on first completion)
 	useEffect(() => {
 		if (!allModules || !contents || !moduleProgress || !enrollmentStatus || hasRedirectedToCertificate.current) return;
@@ -189,16 +210,37 @@ export default function ModuleContentPage() {
 
 
 
-	// Auto-select first accessible content if none selected
-	// Only run on initial load, not when moduleProgress changes
+	// Auto-select content on initial load
+	// Priority: last accessed content > first incomplete > first content
 	useEffect(() => {
-		if (contents && contents.length > 0 && !selectedContentId && moduleProgress) {
-			// Find the first accessible content (first incomplete or first content)
-			const firstIncomplete = contents.find(c => !isContentCompleted(c.id) && checkContentAccessible(c.id));
-			const contentToSelect = firstIncomplete || contents[0];
+		if (contents && contents.length > 0 && !selectedContentId && overallProgress) {
+			let contentToSelect = null;
+			
+			// 1. Check if there's a last accessed content in this module
+			if (overallProgress.last_accessed_content?.module_id === moduleId) {
+				const lastAccessedContent = contents.find(
+					c => c.id === overallProgress.last_accessed_content?.id
+				);
+				if (lastAccessedContent && checkContentAccessible(lastAccessedContent.id)) {
+					contentToSelect = lastAccessedContent;
+				}
+			}
+			
+			// 2. If no last accessed, find first incomplete accessible content
+			if (!contentToSelect) {
+				contentToSelect = contents.find(
+					c => !isContentCompleted(c.id) && checkContentAccessible(c.id)
+				);
+			}
+			
+			// 3. Fallback to first content
+			if (!contentToSelect) {
+				contentToSelect = contents[0];
+			}
+			
 			setSelectedContentId(contentToSelect.id);
 		}
-	}, [contents, selectedContentId]); // Removed moduleProgress dependency to prevent re-runs
+	}, [contents, overallProgress]); // Depend on contents and overallProgress
 
 	const selectedContent = contents?.find((c) => c.id === selectedContentId);
 
@@ -224,15 +266,24 @@ export default function ModuleContentPage() {
 	// Can only navigate to next module if current module is completed
 	const canNavigateToNextModule = hasNextModule && isCurrentModuleCompleted;
 
+	// Debounce progress updates to avoid too many API calls
 	const handleProgress = (contentId: string, timeSpent: number, lastPosition: number) => {
-		updateProgress({
-			contentId,
-			data: {
-				is_completed: false,
-				time_spent: timeSpent,
-				last_position: lastPosition,
-			},
-		});
+		// Clear existing timeout
+		if (progressTimeoutRef.current) {
+			clearTimeout(progressTimeoutRef.current);
+		}
+		
+		// Debounce: only send update after 2 seconds of no new progress
+		progressTimeoutRef.current = setTimeout(() => {
+			updateProgress({
+				contentId,
+				data: {
+					is_completed: false,
+					time_spent: timeSpent,
+					last_position: lastPosition,
+				},
+			});
+		}, 2000);
 	};
 
 	const handleComplete = async (contentId: string, navigateToNext: boolean = false) => {
@@ -258,6 +309,9 @@ export default function ModuleContentPage() {
 					time_spent: 0,
 				},
 			});
+
+			// Small delay to ensure state updates have propagated
+			await new Promise(resolve => setTimeout(resolve, 100));
 
 			// Navigate to next content after successful completion
 			if (navigateToNext) {
@@ -478,7 +532,7 @@ export default function ModuleContentPage() {
 									</CardContent>
 								</Card>
 							) : (
-								<Card className="rounded-md shadow-xs">
+								<Card key={selectedContent.id} className="rounded-md shadow-xs">
 									<CardHeader>
 										<div className="flex items-start justify-between">
 											<div className="flex-1">
@@ -505,12 +559,6 @@ export default function ModuleContentPage() {
 												onProgress={(timeSpent, lastPosition) =>
 													handleProgress(selectedContent.id, timeSpent, lastPosition)
 												}
-												onComplete={() => {
-													// Video auto-complete (when video ends) - auto-navigate to next
-													if (!isContentCompleted(selectedContent.id)) {
-														handleComplete(selectedContent.id, true);
-													}
-												}}
 											/>
 										)}
 
@@ -520,7 +568,6 @@ export default function ModuleContentPage() {
 												onProgress={(timeSpent, lastPosition) =>
 													handleProgress(selectedContent.id, timeSpent, lastPosition)
 												}
-												onComplete={() => handleComplete(selectedContent.id)}
 											/>
 										)}
 
