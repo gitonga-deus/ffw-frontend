@@ -206,11 +206,34 @@ export function useProgress(options: UseProgressOptions = {}) {
     },
 
     // Sync with server response on success
-    onSuccess: (data, variables) => {
-      // Update content progress with server data
+    onSuccess: async (data, variables) => {
+      // CRITICAL: Update all caches immediately with server data before refetching
+      // This ensures isContentCompleted reads the correct state
+      
+      // 1. Update content progress cache
       queryClient.setQueryData(['progress', 'content', variables.contentId], data);
 
-      // Invalidate related queries to refetch fresh data
+      // 2. Update module progress cache with server data
+      if (moduleId) {
+        const moduleData = queryClient.getQueryData<ContentProgress[]>([
+          'progress',
+          'module',
+          moduleId,
+        ]);
+        
+        if (moduleData) {
+          const updatedModuleData = moduleData.map((item) =>
+            item.content_id === variables.contentId ? data : item
+          );
+          queryClient.setQueryData<ContentProgress[]>(
+            ['progress', 'module', moduleId],
+            updatedModuleData
+          );
+        }
+      }
+
+      // 3. Refetch queries in background (don't wait for them)
+      // Using invalidateQueries instead of refetchQueries to avoid blocking
       queryClient.invalidateQueries({ queryKey: ['progress', 'overall'] });
       if (moduleId) {
         queryClient.invalidateQueries({

@@ -311,7 +311,7 @@ export default function ModuleContentPage() {
 		}
 
 		try {
-			// Wait for the server to confirm before navigating
+			// Wait for the server to confirm and cache to update
 			await updateProgressAsync({
 				contentId,
 				data: {
@@ -320,18 +320,17 @@ export default function ModuleContentPage() {
 				},
 			});
 
-			// Small delay to ensure state updates have propagated
-			await new Promise(resolve => setTimeout(resolve, 100));
-
 			// Navigate to next content after successful completion
-			if (navigateToNext) {
-				if (nextContent) {
-					// Move to next content in current module
+			if (navigateToNext && nextContent) {
+				// The cache has been updated synchronously in onSuccess
+				// Double-check that next content is now accessible
+				const isNextAccessible = checkContentAccessible(nextContent.id);
+				
+				if (isNextAccessible || isContentCompleted(nextContent.id)) {
 					setSelectedContentId(nextContent.id);
-				} else if (hasNextModule && isCurrentModuleCompleted) {
-					// Last content in module and module is now complete - stay on page
-					// The useEffect will handle certificate redirect if it's the last module
-					// Otherwise user can manually navigate to next module
+				} else {
+					// This shouldn't happen, but handle it gracefully
+					toast.error('Unable to navigate to next content. Please refresh the page.');
 				}
 			}
 		} catch (error) {
