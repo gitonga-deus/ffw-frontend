@@ -31,6 +31,7 @@ export default function ModuleContentPage() {
 	const [exerciseResponses, setExerciseResponses] = useState<Record<string, Record<string, string>>>({});
 	const hasRedirectedToCertificate = useRef(false);
 	const progressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+	const hasAutoSelectedRef = useRef(false);
 	
 	// Use the new progress hook
 	const {
@@ -213,15 +214,18 @@ export default function ModuleContentPage() {
 	// Auto-select content on initial load
 	// Priority: last accessed content > first incomplete > first content
 	useEffect(() => {
-		if (contents && contents.length > 0 && !selectedContentId && overallProgress) {
+		// Only run once when contents first load
+		if (contents && contents.length > 0 && !selectedContentId && !hasAutoSelectedRef.current) {
+			hasAutoSelectedRef.current = true;
+			
 			let contentToSelect = null;
 			
 			// 1. Check if there's a last accessed content in this module
-			if (overallProgress.last_accessed_content?.module_id === moduleId) {
+			if (overallProgress?.last_accessed_content?.module_id === moduleId) {
 				const lastAccessedContent = contents.find(
 					c => c.id === overallProgress.last_accessed_content?.id
 				);
-				if (lastAccessedContent && checkContentAccessible(lastAccessedContent.id)) {
+				if (lastAccessedContent) {
 					contentToSelect = lastAccessedContent;
 				}
 			}
@@ -229,7 +233,7 @@ export default function ModuleContentPage() {
 			// 2. If no last accessed, find first incomplete accessible content
 			if (!contentToSelect) {
 				contentToSelect = contents.find(
-					c => !isContentCompleted(c.id) && checkContentAccessible(c.id)
+					c => !isContentCompleted(c.id)
 				);
 			}
 			
@@ -240,7 +244,13 @@ export default function ModuleContentPage() {
 			
 			setSelectedContentId(contentToSelect.id);
 		}
-	}, [contents, overallProgress]); // Depend on contents and overallProgress
+	}, [contents]); // Only depend on contents loading
+	
+	// Reset the auto-select flag when module changes
+	useEffect(() => {
+		hasAutoSelectedRef.current = false;
+		setSelectedContentId(null);
+	}, [moduleId]);
 
 	const selectedContent = contents?.find((c) => c.id === selectedContentId);
 
