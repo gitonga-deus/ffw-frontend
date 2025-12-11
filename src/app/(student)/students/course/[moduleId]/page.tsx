@@ -321,17 +321,9 @@ export default function ModuleContentPage() {
 			});
 
 			// Navigate to next content after successful completion
+			// The mutation's onSuccess has already updated the cache synchronously
 			if (navigateToNext && nextContent) {
-				// The cache has been updated synchronously in onSuccess
-				// Double-check that next content is now accessible
-				const isNextAccessible = checkContentAccessible(nextContent.id);
-				
-				if (isNextAccessible || isContentCompleted(nextContent.id)) {
-					setSelectedContentId(nextContent.id);
-				} else {
-					// This shouldn't happen, but handle it gracefully
-					toast.error('Unable to navigate to next content. Please refresh the page.');
-				}
+				setSelectedContentId(nextContent.id);
 			}
 		} catch (error) {
 			// Error is already handled by the mutation's onError

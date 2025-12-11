@@ -206,14 +206,15 @@ export function useProgress(options: UseProgressOptions = {}) {
     },
 
     // Sync with server response on success
-    onSuccess: async (data, variables) => {
-      // CRITICAL: Update all caches immediately with server data before refetching
-      // This ensures isContentCompleted reads the correct state
+    onSuccess: (data, variables) => {
+      // CRITICAL: Update all caches SYNCHRONOUSLY with server data
+      // This ensures isContentCompleted reads the correct state immediately
       
-      // 1. Update content progress cache
+      // 1. Update content progress cache for the completed content
       queryClient.setQueryData(['progress', 'content', variables.contentId], data);
 
       // 2. Update module progress cache with server data
+      // This is critical for sequential access checks
       if (moduleId) {
         const moduleData = queryClient.getQueryData<ContentProgress[]>([
           'progress',
@@ -222,9 +223,12 @@ export function useProgress(options: UseProgressOptions = {}) {
         ]);
         
         if (moduleData) {
+          // Update the specific item in the module progress array
           const updatedModuleData = moduleData.map((item) =>
             item.content_id === variables.contentId ? data : item
           );
+          
+          // Set the updated data synchronously
           queryClient.setQueryData<ContentProgress[]>(
             ['progress', 'module', moduleId],
             updatedModuleData
@@ -232,14 +236,8 @@ export function useProgress(options: UseProgressOptions = {}) {
         }
       }
 
-      // 3. Refetch queries in background (don't wait for them)
-      // Using invalidateQueries instead of refetchQueries to avoid blocking
+      // 3. Refetch overall progress in background (non-blocking)
       queryClient.invalidateQueries({ queryKey: ['progress', 'overall'] });
-      if (moduleId) {
-        queryClient.invalidateQueries({
-          queryKey: ['progress', 'module', moduleId],
-        });
-      }
 
       // Show success notification only for completion
       if (data.is_completed) {
@@ -253,17 +251,7 @@ export function useProgress(options: UseProgressOptions = {}) {
 
   // Helper function to check if content is completed
   const isContentCompleted = (checkContentId: string): boolean => {
-    // Check in content progress cache
-    const cached = queryClient.getQueryData<ContentProgress>([
-      'progress',
-      'content',
-      checkContentId,
-    ]);
-    if (cached) {
-      return cached.is_completed;
-    }
-
-    // Check in module progress cache
+    // First check in module progress cache (most reliable for sequential access)
     if (moduleId) {
       const moduleData = queryClient.getQueryData<ContentProgress[]>([
         'progress',
@@ -271,9 +259,19 @@ export function useProgress(options: UseProgressOptions = {}) {
         moduleId,
       ]);
       const item = moduleData?.find((p) => p.content_id === checkContentId);
-      if (item) {
+      if (item !== undefined) {
         return item.is_completed;
       }
+    }
+
+    // Fallback to content progress cache
+    const cached = queryClient.getQueryData<ContentProgress>([
+      'progress',
+      'content',
+      checkContentId,
+    ]);
+    if (cached) {
+      return cached.is_completed;
     }
 
     return false;
