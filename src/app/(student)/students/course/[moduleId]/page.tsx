@@ -312,22 +312,23 @@ export default function ModuleContentPage() {
 
 		try {
 			// Wait for the server to confirm and cache to update
+			// Pass navigation callback to execute AFTER cache synchronization
 			await updateProgressAsync({
 				contentId,
 				data: {
 					is_completed: true,
 					time_spent: 0,
 				},
+				onNavigate: navigateToNext && nextContent 
+					? () => setSelectedContentId(nextContent.id)
+					: undefined,
 			});
 
-			// Navigate to next content after successful completion
-			// The mutation's onSuccess has already updated the cache synchronously
-			if (navigateToNext && nextContent) {
-				setSelectedContentId(nextContent.id);
-			}
+			// Navigation now happens in the mutation's onSuccess callback
+			// after all cache updates complete, preventing race conditions
 		} catch (error) {
 			// Error is already handled by the mutation's onError
-			// Just prevent navigation on failure
+			// Navigation callback won't execute on failure
 			console.error('Failed to mark content as complete:', error);
 		}
 	};
