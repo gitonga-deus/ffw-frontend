@@ -259,9 +259,16 @@ export default function ModuleContentPage() {
 				},
 			});
 
-			// Only navigate after successful server confirmation
-			if (navigateToNext && nextContent) {
-				setSelectedContentId(nextContent.id);
+			// Navigate to next content after successful completion
+			if (navigateToNext) {
+				if (nextContent) {
+					// Move to next content in current module
+					setSelectedContentId(nextContent.id);
+				} else if (hasNextModule && isCurrentModuleCompleted) {
+					// Last content in module and module is now complete - stay on page
+					// The useEffect will handle certificate redirect if it's the last module
+					// Otherwise user can manually navigate to next module
+				}
 			}
 		} catch (error) {
 			// Error is already handled by the mutation's onError
@@ -272,9 +279,18 @@ export default function ModuleContentPage() {
 
 	const handleNavigate = (direction: "previous" | "next") => {
 		if (direction === "previous" && previousContent) {
+			// Previous content is always accessible
 			setSelectedContentId(previousContent.id);
 		} else if (direction === "next" && nextContent) {
-			setSelectedContentId(nextContent.id);
+			// Check if next content is accessible
+			const isAccessible = checkContentAccessible(nextContent.id);
+			const isCompleted = isContentCompleted(nextContent.id);
+			
+			if (isAccessible || isCompleted) {
+				setSelectedContentId(nextContent.id);
+			} else {
+				toast.error("Complete the current content to unlock the next item");
+			}
 		}
 	};
 
@@ -490,9 +506,9 @@ export default function ModuleContentPage() {
 													handleProgress(selectedContent.id, timeSpent, lastPosition)
 												}
 												onComplete={() => {
-													// Video auto-complete (when video ends) - don't auto-navigate
+													// Video auto-complete (when video ends) - auto-navigate to next
 													if (!isContentCompleted(selectedContent.id)) {
-														handleComplete(selectedContent.id, false);
+														handleComplete(selectedContent.id, true);
 													}
 												}}
 											/>
@@ -551,7 +567,7 @@ export default function ModuleContentPage() {
 											{/* Mark as Complete Button */}
 											{!isContentCompleted(selectedContent.id) ? (
 												<Button
-													onClick={() => handleComplete(selectedContent.id, hasNext)}
+													onClick={() => handleComplete(selectedContent.id, true)}
 													disabled={isUpdating}
 													className="rounded-sm bg-[#049ad1] hover:bg-[#049ad1]/90 h-10 px-4!"
 												>

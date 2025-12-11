@@ -384,7 +384,11 @@ export default function StudentDashboard() {
                       variant="default"
                       className="bg-[#049ad1] hover:bg-[#049ad1]/80 px-4! h-10 rounded-sm"
                     >
-                      <Link href="/students/course">
+                      <Link href={
+                        overallProgress?.progress_percentage === 0 && modulesData?.[0]?.id
+                          ? `/students/course/${modulesData[0].id}`
+                          : "/students/course"
+                      }>
                         <NotebookPen className="mr-2 h-4 w-4" />
                         {overallProgress?.progress_percentage === 0
                           ? "Start Learning"
