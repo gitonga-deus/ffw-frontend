@@ -31,8 +31,7 @@ export default function ModuleContentPage() {
 	const [exerciseResponses, setExerciseResponses] = useState<Record<string, Record<string, string>>>({});
 	const hasRedirectedToCertificate = useRef(false);
 	const hasAutoSelectedRef = useRef(false);
-	const progressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-	const pendingProgressRef = useRef<{ contentId: string; timeSpent: number; lastPosition: number } | null>(null);
+
 	
 	// Use the new progress hook
 	const {
@@ -139,29 +138,7 @@ export default function ModuleContentPage() {
 		}
 	}, [moduleId, user]);
 
-	// Cleanup progress timeout on unmount and flush pending updates
-	useEffect(() => {
-		return () => {
-			// Clear timeout
-			if (progressTimeoutRef.current) {
-				clearTimeout(progressTimeoutRef.current);
-			}
-			
-			// Flush any pending progress update before unmounting
-			if (pendingProgressRef.current) {
-				const { contentId, timeSpent, lastPosition } = pendingProgressRef.current;
-				updateProgress({
-					contentId,
-					data: {
-						is_completed: false,
-						time_spent: timeSpent,
-						last_position: lastPosition,
-					},
-				});
-				pendingProgressRef.current = null;
-			}
-		};
-	}, [updateProgress]);
+
 
 	// Check for course completion and redirect to certificate page (only on first completion)
 	useEffect(() => {
@@ -293,36 +270,11 @@ export default function ModuleContentPage() {
 	// Can only navigate to next module if current module is completed
 	const canNavigateToNextModule = hasNextModule && isCurrentModuleCompleted;
 
-	// Debounce progress updates to avoid too many API calls
-	const handleProgress = (contentId: string, timeSpent: number, lastPosition: number) => {
-		// Store pending progress for flush on unmount
-		pendingProgressRef.current = { contentId, timeSpent, lastPosition };
-		
-		// Clear existing timeout
-		if (progressTimeoutRef.current) {
-			clearTimeout(progressTimeoutRef.current);
-		}
-		
-		// Debounce: only send update after 2 seconds of no new progress
-		progressTimeoutRef.current = setTimeout(() => {
-			updateProgress({
-				contentId,
-				data: {
-					is_completed: false,
-					time_spent: timeSpent,
-					last_position: lastPosition,
-				},
-			});
-			// Clear pending progress after successful update
-			pendingProgressRef.current = null;
-		}, 2000);
-	};
+
 
 	const handleComplete = async (contentId: string, navigateToNext: boolean = false) => {
-		// Prevent duplicate completion calls
-		if (isUpdating) {
-			return;
-		}
+		// Prevent duplicate calls
+		if (isUpdating) return;
 
 		// Check if already completed
 		if (isContentCompleted(contentId)) {
@@ -332,35 +284,18 @@ export default function ModuleContentPage() {
 			return;
 		}
 
-		// Clear any pending debounced progress updates for this content
-		if (pendingProgressRef.current?.contentId === contentId) {
-			pendingProgressRef.current = null;
-		}
-		if (progressTimeoutRef.current) {
-			clearTimeout(progressTimeoutRef.current);
-			progressTimeoutRef.current = null;
-		}
-
 		try {
-			// Wait for the server to confirm and cache to update
+			// Simple: just mark as complete
 			await updateProgressAsync({
 				contentId,
-				data: {
-					is_completed: true,
-					time_spent: 0,
-				},
+				data: { is_completed: true, time_spent: 0 },
 			});
 
-			// After successful completion, navigate if requested
-			// This ensures the backend has fully processed the completion
+			// Navigate after success
 			if (navigateToNext && nextContent) {
-				// Small delay to ensure all cache updates propagate
-				setTimeout(() => {
-					setSelectedContentId(nextContent.id);
-				}, 100);
+				setTimeout(() => setSelectedContentId(nextContent.id), 100);
 			}
 		} catch (error) {
-			// Error is already handled by the mutation's onError
 			console.error('Failed to mark content as complete:', error);
 		}
 	};
@@ -588,21 +523,11 @@ export default function ModuleContentPage() {
 									)} */}
 
 										{selectedContent.content_type === "video" && (
-											<VideoPlayer
-												content={selectedContent}
-												onProgress={(timeSpent, lastPosition) =>
-													handleProgress(selectedContent.id, timeSpent, lastPosition)
-												}
-											/>
+											<VideoPlayer content={selectedContent} />
 										)}
 
 										{selectedContent.content_type === "pdf" && (
-											<PDFViewer
-												content={selectedContent}
-												onProgress={(timeSpent, lastPosition) =>
-													handleProgress(selectedContent.id, timeSpent, lastPosition)
-												}
-											/>
+											<PDFViewer content={selectedContent} />
 										)}
 
 										{selectedContent.content_type === "rich_text" && (
@@ -638,9 +563,6 @@ export default function ModuleContentPage() {
 													embedCode={selectedContent.exercise.embed_code}
 													formTitle={selectedContent.exercise.form_title}
 													isCompleted={isContentCompleted(selectedContent.id)}
-													onProgress={(timeSpent) =>
-														handleProgress(selectedContent.id, timeSpent, 0)
-													}
 												/>
 											)}
 
