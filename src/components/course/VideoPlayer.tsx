@@ -46,11 +46,11 @@ export function VideoPlayer({
 	const [error, setError] = useState<string | null>(null);
 	const [isCompleted, setIsCompleted] = useState(false);
 	const [watchedPercentage, setWatchedPercentage] = useState(0);
+	const [scriptLoaded, setScriptLoaded] = useState(false);
 
 	const startTimeRef = useRef<number>(Date.now());
 	const lastPositionRef = useRef<number>(initialPosition);
 	const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-	const scriptLoadedRef = useRef<boolean>(false);
 
 	// Calculate and report progress - using ref to avoid recreating
 	const onProgressRef = useRef(onProgress);
@@ -90,19 +90,19 @@ export function VideoPlayer({
 		if (existingScript) {
 			// Script already exists, check if Vimeo is loaded
 			if (hasVimeo(window)) {
-				scriptLoadedRef.current = true;
+				setScriptLoaded(true);
 			}
 			return;
 		}
 
-		if (scriptLoadedRef.current) return;
+		if (scriptLoaded) return;
 
 		const script = document.createElement("script");
 		script.src ="https://player.vimeo.com/api/player.js";
 		script.async = true;
 
 		script.onload = () => {
-			scriptLoadedRef.current = true;
+			setScriptLoaded(true);
 		};
 
 		script.onerror = () => {
@@ -114,7 +114,7 @@ export function VideoPlayer({
 		return () => {
 			// Don't remove script on unmount as it may be used by other components
 		};
-	}, []);
+	}, [scriptLoaded]);
 
 	// Initialize Vimeo Player
 	useEffect(() => {
@@ -123,7 +123,7 @@ export function VideoPlayer({
 		}
 
 		// Wait for script to load
-		if (!scriptLoadedRef.current || !hasVimeo(window)) {
+		if (!scriptLoaded || !hasVimeo(window)) {
 			return;
 		}
 
@@ -207,7 +207,7 @@ export function VideoPlayer({
 				});
 			}
 		};
-	}, [content.vimeo_video_id, initialPosition, handleVideoComplete, reportProgress]);
+	}, [content.vimeo_video_id, initialPosition, handleVideoComplete, reportProgress, scriptLoaded]);
 
 	if (!content.vimeo_video_id) {
 		return (
