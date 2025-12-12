@@ -247,6 +247,17 @@ export default function ModuleContentPage() {
 	}, [moduleId]);
 
 	const selectedContent = contents?.find((c) => c.id === selectedContentId);
+	
+	// Debug logging
+	useEffect(() => {
+		if (selectedContentId && !selectedContent && contents) {
+			console.log('Content not found!', {
+				selectedContentId,
+				availableIds: contents.map(c => c.id),
+				contentsLength: contents.length
+			});
+		}
+	}, [selectedContentId, selectedContent, contents]);
 
 	// Get current content index and navigation info
 	const currentIndex = contents?.findIndex((c) => c.id === selectedContentId) ?? -1;
@@ -285,15 +296,23 @@ export default function ModuleContentPage() {
 		}
 
 		try {
+			console.log('Marking complete:', { contentId, navigateToNext, nextContent: nextContent?.id });
+			
 			// Simple: just mark as complete
 			await updateProgressAsync({
 				contentId,
 				data: { is_completed: true, time_spent: 0 },
 			});
 
+			console.log('Marked complete successfully');
+
 			// Navigate after success
 			if (navigateToNext && nextContent) {
-				setTimeout(() => setSelectedContentId(nextContent.id), 100);
+				console.log('Navigating to next content:', nextContent.id);
+				setTimeout(() => {
+					console.log('Setting selected content to:', nextContent.id);
+					setSelectedContentId(nextContent.id);
+				}, 100);
 			}
 		} catch (error) {
 			console.error('Failed to mark content as complete:', error);
@@ -470,7 +489,14 @@ export default function ModuleContentPage() {
 				<div className="">
 					{/* Content Display Area */}
 					<div className="">
-						{selectedContent ? (
+						{contentsLoading ? (
+							<Card className="rounded-md shadow-xs">
+								<CardContent className="text-center py-12">
+									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+									<p className="text-muted-foreground">Loading content...</p>
+								</CardContent>
+							</Card>
+						) : selectedContent ? (
 							!checkContentAccessible(selectedContent.id) && !isContentCompleted(selectedContent.id) ? (
 								<Card className="rounded-md shadow-xs border-yellow-500/50">
 									<CardHeader>
@@ -516,12 +542,6 @@ export default function ModuleContentPage() {
 									</CardHeader>
 									<Separator />
 									<CardContent className="space-y-4 pt-6">
-										{/* {!isContentCompleted(selectedContent.id) && (
-										<div className="bg-blue-50 dark:bg-blue-950/20 border border-dashed border-blue-200 dark:border-blue-800 rounded-md p-3 text-sm text-blue-900 dark:text-blue-100">
-											<p>Review this content, then click "Mark as Complete" below to track your progress.</p>
-										</div>
-									)} */}
-
 										{selectedContent.content_type === "video" && (
 											<VideoPlayer content={selectedContent} />
 										)}
