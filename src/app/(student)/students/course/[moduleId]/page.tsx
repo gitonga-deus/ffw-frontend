@@ -82,6 +82,10 @@ export default function ModuleContentPage() {
 			return response.data;
 		},
 		enabled: !!user?.is_enrolled,
+		staleTime: 5 * 60 * 1000, // 5 minutes - don't refetch
+		gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
+		refetchOnWindowFocus: false, // Don't refetch on focus
+		refetchOnMount: false, // Don't refetch on remount
 	});
 
 	// Check if current module is accessible
@@ -251,13 +255,14 @@ export default function ModuleContentPage() {
 	// Debug logging
 	useEffect(() => {
 		if (selectedContentId && !selectedContent && contents) {
-			console.log('Content not found!', {
+			console.error('Content not found!', {
 				selectedContentId,
 				availableIds: contents.map(c => c.id),
-				contentsLength: contents.length
+				contentsLength: contents.length,
+				contentsLoading
 			});
 		}
-	}, [selectedContentId, selectedContent, contents]);
+	}, [selectedContentId, selectedContent, contents, contentsLoading]);
 
 	// Get current content index and navigation info
 	const currentIndex = contents?.findIndex((c) => c.id === selectedContentId) ?? -1;
@@ -646,6 +651,26 @@ export default function ModuleContentPage() {
 									</CardContent>
 								</Card>
 							)
+						) : selectedContentId && contents && contents.length > 0 ? (
+							<Card className="rounded-sm shadow-xs border-destructive">
+								<CardContent className="text-center py-12">
+									<p className="text-destructive font-medium mb-2">Content not found</p>
+									<p className="text-sm text-muted-foreground mb-4">
+										The selected content (ID: {selectedContentId}) is not available.
+									</p>
+									<Button 
+										onClick={() => {
+											const firstContent = contents[0];
+											if (firstContent) {
+												setSelectedContentId(firstContent.id);
+											}
+										}}
+										variant="outline"
+									>
+										Go to First Content
+									</Button>
+								</CardContent>
+							</Card>
 						) : (
 							<Card className="rounded-sm shadow-xs">
 								<CardContent className="text-center py-12">
