@@ -81,7 +81,6 @@ export function useProgress(options: UseProgressOptions = {}) {
     }: {
       contentId: string;
       data: ProgressUpdateRequest;
-      onNavigate?: () => void;
     }) => updateProgress(contentId, data),
     
     // Retry failed mutations (except for validation errors)
@@ -267,30 +266,6 @@ export function useProgress(options: UseProgressOptions = {}) {
           description: 'Your progress has been saved.',
           duration: 2000,
         });
-      }
-
-      // 4. Execute navigation callback AFTER all cache updates complete
-      // This ensures the next content's accessibility check reads fresh data
-      if (variables.onNavigate) {
-        // Defensive check: verify cache was updated correctly before navigating
-        const verifyCache = queryClient.getQueryData<ContentProgress>([
-          'progress',
-          'content',
-          variables.contentId,
-        ]);
-        
-        if (verifyCache && verifyCache.is_completed === data.is_completed) {
-          // Cache is consistent, safe to navigate
-          variables.onNavigate();
-        } else {
-          // Cache inconsistency detected, log warning but still navigate
-          console.warn(
-            'Cache inconsistency detected after progress update',
-            { expected: data.is_completed, actual: verifyCache?.is_completed }
-          );
-          // Still navigate to avoid blocking user, but log the issue
-          variables.onNavigate();
-        }
       }
     },
   });
