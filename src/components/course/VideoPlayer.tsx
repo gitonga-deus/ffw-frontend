@@ -47,6 +47,7 @@ export function VideoPlayer({
 	const [isCompleted, setIsCompleted] = useState(false);
 	const [watchedPercentage, setWatchedPercentage] = useState(0);
 	const [scriptLoaded, setScriptLoaded] = useState(false);
+	const [isPlayerReady, setIsPlayerReady] = useState(false);
 
 	const startTimeRef = useRef<number>(Date.now());
 	const lastPositionRef = useRef<number>(initialPosition);
@@ -85,18 +86,28 @@ export function VideoPlayer({
 	useEffect(() => {
 		if (typeof window === 'undefined') return;
 
+		// Check if script already exists
 		const existingScript = document.querySelector('script[src*="player.vimeo.com"]');
 
 		if (existingScript) {
 			// Script already exists, check if Vimeo is loaded
 			if (hasVimeo(window)) {
 				setScriptLoaded(true);
+			} else {
+				// Wait for it to load
+				const checkVimeo = setInterval(() => {
+					if (hasVimeo(window)) {
+						setScriptLoaded(true);
+						clearInterval(checkVimeo);
+					}
+				}, 100);
+				
+				return () => clearInterval(checkVimeo);
 			}
 			return;
 		}
 
-		if (scriptLoaded) return;
-
+		// Create new script
 		const script = document.createElement("script");
 		script.src ="https://player.vimeo.com/api/player.js";
 		script.async = true;
@@ -114,7 +125,7 @@ export function VideoPlayer({
 		return () => {
 			// Don't remove script on unmount as it may be used by other components
 		};
-	}, [scriptLoaded]);
+	}, []); // Only run once on mount
 
 	// Initialize Vimeo Player
 	useEffect(() => {
@@ -133,6 +144,7 @@ export function VideoPlayer({
 		const initPlayer = async () => {
 			try {
 				setError(null);
+				setIsPlayerReady(false);
 
 				if (!hasVimeo(window)) {
 					setError("Video player not loaded");
@@ -150,6 +162,7 @@ export function VideoPlayer({
 				}
 
 				setPlayer(vimeoPlayer);
+				setIsPlayerReady(true);
 
 				// Set initial position if provided
 				if (initialPosition > 0) {
@@ -235,6 +248,11 @@ export function VideoPlayer({
 	return (
 		<div className="space-y-2">
 			<div className="aspect-video bg-black overflow-hidden relative">
+				{!isPlayerReady && (
+					<div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+						<Loader2 className="h-8 w-8 text-white animate-spin" />
+					</div>
+				)}
 				<iframe
 					ref={iframeRef}
 					src={`https://player.vimeo.com/video/${content.vimeo_video_id}?title=0&byline=0&portrait=0`}
