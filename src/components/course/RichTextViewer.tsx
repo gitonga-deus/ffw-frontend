@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface RichTextViewerProps {
 	htmlContent: string;
@@ -8,20 +10,53 @@ interface RichTextViewerProps {
 
 export function RichTextViewer({ htmlContent }: RichTextViewerProps) {
 	const contentRef = useRef<HTMLDivElement>(null);
+	const [hasError, setHasError] = useState(false);
+	const [retryKey, setRetryKey] = useState(0);
 
 	useEffect(() => {
-		if (contentRef.current && htmlContent) {
-			// Clean up the HTML content
-			const cleanedContent = typeof htmlContent === 'string' ? htmlContent.trim() : '';
-			contentRef.current.innerHTML = cleanedContent;
+		try {
+			if (contentRef.current && htmlContent) {
+				// Clean up the HTML content
+				const cleanedContent = typeof htmlContent === 'string' ? htmlContent.trim() : '';
+				contentRef.current.innerHTML = cleanedContent;
+				setHasError(false);
+			}
+		} catch (error) {
+			console.error("Failed to render rich text content:", error);
+			setHasError(true);
 		}
-	}, [htmlContent]);
+	}, [htmlContent, retryKey]);
+
+	const handleRetry = () => {
+		setHasError(false);
+		setRetryKey(prev => prev + 1);
+	};
 
 	// Handle empty or invalid content
 	if (!htmlContent || (typeof htmlContent === 'string' && htmlContent.trim() === '')) {
 		return (
 			<div className="bg-muted rounded-lg p-8 text-center">
+				<AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
 				<p className="text-muted-foreground">No content available</p>
+			</div>
+		);
+	}
+
+	// Handle rendering errors
+	if (hasError) {
+		return (
+			<div className="bg-muted rounded-lg p-8 text-center space-y-4">
+				<AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+				<div>
+					<p className="text-destructive font-medium">Failed to load content</p>
+					<p className="text-sm text-muted-foreground mt-1">
+						The content could not be displayed properly. Please try refreshing.
+					</p>
+				</div>
+				<Button onClick={handleRetry} variant="outline">
+					<RefreshCw className="mr-2 h-4 w-4" />
+					Retry
+				</Button>
 			</div>
 		);
 	}

@@ -181,7 +181,7 @@ export function useProgress(options: UseProgressOptions = {}) {
 
     // Rollback on error
     onError: (error, variables, context) => {
-      // Restore previous values
+      // Restore previous values (rollback optimistic updates)
       if (context?.previousOverall) {
         queryClient.setQueryData(
           ['progress', 'overall'],
@@ -201,19 +201,48 @@ export function useProgress(options: UseProgressOptions = {}) {
         );
       }
 
-      // Show error notification with more details
-      const errorMessage =
-        (error as any)?.response?.data?.error?.message ||
-        (error as any)?.message ||
-        'Failed to update progress. Please try again.';
+      // Determine error type and message
+      const errorCode = (error as any)?.code;
+      const statusCode = (error as any)?.statusCode || (error as any)?.response?.status;
+      const errorMessage = (error as any)?.message || 'Failed to save progress. Please try again.';
       
-      const isNetworkError = !!(error as any)?.code && (error as any).code === 'NETWORK_ERROR';
+      let title = 'Progress Update Failed';
+      let description = errorMessage;
       
-      toast.error('Progress Update Failed', {
-        description: isNetworkError 
-          ? 'Network connection lost. Your progress was not saved. Please check your connection and try again.'
-          : errorMessage,
+      // Network errors
+      if (errorCode === 'NETWORK_ERROR' || !statusCode) {
+        title = 'No Internet Connection';
+        description = 'Your progress was not saved. Please check your connection and try again.';
+      }
+      // Timeout errors
+      else if (errorCode === 'TIMEOUT_ERROR' || errorCode === 'ECONNABORTED') {
+        title = 'Request Timed Out';
+        description = 'The server took too long to respond. Please try again.';
+      }
+      // Server errors (5xx)
+      else if (statusCode >= 500) {
+        title = 'Server Error';
+        description = 'The server encountered an error. Please try again in a moment.';
+      }
+      // Validation errors (4xx)
+      else if (statusCode >= 400 && statusCode < 500) {
+        title = 'Invalid Request';
+        description = errorMessage;
+      }
+      
+      toast.error(title, {
+        description,
         duration: 5000, // Show longer for errors
+        action: {
+          label: 'Retry',
+          onClick: () => {
+            // Retry the mutation
+            updateProgressMutation.mutate({
+              contentId: variables.contentId,
+              data: variables.data,
+            });
+          },
+        },
       });
     },
 
@@ -248,12 +277,66 @@ export function useProgress(options: UseProgressOptions = {}) {
         }
       }
 
-      // 3. Invalidate and refetch overall progress immediately for completion
-      // This ensures module progress percentages are updated
+      // 3. Update overall progress cache synchronously for completion
+      // This ensures progress bars and percentages update immediately
       if (data.is_completed) {
+        const overallData = queryClient.getQueryData<OverallProgress>([
+          'progress',
+          'overall',
+        ]);
+        
+        if (overallData) {
+          // Find the module this content belongs to
+          const moduleData = queryClient.getQueryData<ContentProgress[]>([
+            'progress',
+            'module',
+            moduleId,
+          ]);
+          
+          if (moduleData) {
+            // Calculate new module progress
+            const completedInModule = moduleData.filter(item => item.is_completed).length;
+            const totalInModule = moduleData.length;
+            const moduleProgressPercentage = (completedInModule / totalInModule) * 100;
+            
+            // Update the module progress in overall progress
+            const updatedModules = overallData.modules.map(m => 
+              m.module_id === moduleId
+                ? {
+                    ...m,
+                    completed_content: completedInModule,
+                    total_content: totalInModule,
+                    progress_percentage: moduleProgressPercentage,
+                  }
+                : m
+            );
+            
+            // Calculate new overall progress
+            const totalCompleted = updatedModules.reduce((sum, m) => sum + m.completed_content, 0);
+            const totalContent = updatedModules.reduce((sum, m) => sum + m.total_content, 0);
+            const overallProgressPercentage = totalContent > 0 ? (totalCompleted / totalContent) * 100 : 0;
+            
+            // Update overall progress cache synchronously
+            queryClient.setQueryData<OverallProgress>(
+              ['progress', 'overall'],
+              {
+                ...overallData,
+                completed_content: totalCompleted,
+                total_content: totalContent,
+                progress_percentage: overallProgressPercentage,
+                modules: updatedModules,
+                last_accessed_content_id: variables.contentId,
+                last_accessed_at: new Date().toISOString(),
+              }
+            );
+          }
+        }
+        
+        // Also invalidate to ensure server data is fetched in background
+        // This will update within 1 second as a backup
         queryClient.invalidateQueries({ 
           queryKey: ['progress', 'overall'],
-          refetchType: 'active' // Refetch active queries immediately
+          refetchType: 'active'
         });
       } else {
         // For partial progress, just invalidate (will refetch on next access)

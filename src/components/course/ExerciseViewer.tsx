@@ -2,14 +2,12 @@
 
 import { useEffect, useState, useRef } from "react";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 interface ExerciseViewerProps {
 	exerciseId: string;
 	embedCode: string;
 	formTitle: string;
 	isCompleted: boolean;
-	onProgress?: (timeSpent: number) => void;
 }
 
 export function ExerciseViewer({
@@ -17,47 +15,26 @@ export function ExerciseViewer({
 	embedCode,
 	formTitle,
 	isCompleted,
-	onProgress,
 }: ExerciseViewerProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [hasInjected, setHasInjected] = useState(false);
-	const [loadTimeout, setLoadTimeout] = useState<NodeJS.Timeout | null>(null);
-	const startTimeRef = useRef<number>(Date.now());
-	const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-	// Report progress periodically
-	useEffect(() => {
-		if (!onProgress) return;
-
-		progressIntervalRef.current = setInterval(() => {
-			const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-			onProgress(timeSpent);
-		}, 30000); // Every 30 seconds
-
-		return () => {
-			if (progressIntervalRef.current) {
-				clearInterval(progressIntervalRef.current);
-			}
-		};
-	}, [onProgress]);
 
 	// Inject embed code into container
 	useEffect(() => {
-		if (!containerRef.current || !embedCode || hasInjected) return;
+		if (!containerRef.current || !embedCode) return;
+
+		// Reset state for fresh load
+		setIsLoading(true);
+		setError(null);
+
+		let timeout: NodeJS.Timeout | null = null;
 
 		try {
-			setIsLoading(true);
-			setError(null);
-
 			// Set a timeout to detect if 123FormBuilder service is unavailable
-			const timeout = setTimeout(() => {
+			timeout = setTimeout(() => {
 				setIsLoading(false);
-				setHasInjected(true);
 			}, 3000); // 3 second timeout
-
-			setLoadTimeout(timeout);
 
 			// Simply inject the embed code directly using dangerouslySetInnerHTML approach
 			// This preserves the exact script tags and attributes from 123FormBuilder
@@ -82,8 +59,7 @@ export function ExerciseViewer({
 				oldScript.parentNode?.replaceChild(newScript, oldScript);
 			});
 
-			setHasInjected(true);
-			console.log("123FormBuilder embed code injected");
+			console.log("123FormBuilder embed code injected for exercise:", exerciseId);
 
 		} catch (err) {
 			console.error("Error injecting embed code:", err);
@@ -93,11 +69,11 @@ export function ExerciseViewer({
 
 		// Cleanup function
 		return () => {
-			if (loadTimeout) {
-				clearTimeout(loadTimeout);
+			if (timeout) {
+				clearTimeout(timeout);
 			}
 		};
-	}, [embedCode, hasInjected, loadTimeout]);
+	}, [embedCode, exerciseId]); // Re-run when exerciseId changes to ensure fresh load
 
 	if (!embedCode) {
 		return (
@@ -152,10 +128,9 @@ export function ExerciseViewer({
 							onClick={() => {
 								setError(null);
 								setIsLoading(true);
-								setHasInjected(false);
-								if (loadTimeout) {
-									clearTimeout(loadTimeout);
-									setLoadTimeout(null);
+								// Clear container to force re-injection
+								if (containerRef.current) {
+									containerRef.current.innerHTML = '';
 								}
 							}}
 							className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"

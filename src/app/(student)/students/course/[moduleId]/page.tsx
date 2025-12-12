@@ -29,7 +29,6 @@ export default function ModuleContentPage() {
 	const router = useRouter();
 	const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
 	const [exerciseResponses, setExerciseResponses] = useState<Record<string, Record<string, string>>>({});
-	const hasRedirectedToCertificate = useRef(false);
 	const hasAutoSelectedRef = useRef(false);
 
 	
@@ -38,21 +37,11 @@ export default function ModuleContentPage() {
 		overallProgress,
 		moduleProgress,
 		isContentCompleted,
-		isContentAccessible,
-		updateProgress,
 		updateProgressAsync,
 		isUpdating,
 	} = useProgress({ moduleId });
 
-	// Fetch enrollment status to check if course was already completed
-	const { data: enrollmentStatus } = useQuery({
-		queryKey: ["enrollment-status"],
-		queryFn: async () => {
-			const response = await api.get("/enrollment/status");
-			return response.data;
-		},
-		enabled: !!user?.is_enrolled,
-	});
+
 
 	// Fetch all modules for navigation
 	const { data: allModules } = useQuery<Module[]>({
@@ -103,18 +92,23 @@ export default function ModuleContentPage() {
 		return (previousModule as any).progress_percentage === 100;
 	};
 
-	// Check if content is accessible (not locked) - simplified with new hook
+	// Simplified content accessibility check
 	const checkContentAccessible = (contentId: string): boolean => {
 		if (!contents) return false;
 
-		// Already completed content is always accessible
+		// Already completed content is always accessible (for review)
 		if (isContentCompleted(contentId)) return true;
 
-		// First check if the module itself is accessible
-		if (!isModuleAccessible()) return false;
+		// Find the content in the list
+		const contentIndex = contents.findIndex((c) => c.id === contentId);
+		if (contentIndex === -1) return false;
 
-		// Use the hook's helper function with the content list
-		return isContentAccessible(contentId, contents);
+		// First content is always accessible
+		if (contentIndex === 0) return true;
+
+		// Check if previous content is completed
+		const previousContent = contents[contentIndex - 1];
+		return isContentCompleted(previousContent.id);
 	};
 
 	// Redirect if not enrolled
@@ -144,39 +138,7 @@ export default function ModuleContentPage() {
 
 
 
-	// Check for course completion and redirect to certificate page (only on first completion)
-	useEffect(() => {
-		if (!allModules || !contents || !moduleProgress || !enrollmentStatus || hasRedirectedToCertificate.current) return;
 
-		// Only redirect if course wasn't already completed
-		const wasAlreadyCompleted = enrollmentStatus.enrollment?.completed_at;
-		if (wasAlreadyCompleted) return;
-
-		// Check if this is the last module
-		const isLastModule = allModules[allModules.length - 1]?.id === moduleId;
-		
-		if (isLastModule) {
-			// Check if all content in this module is completed
-			const allContentCompleted = contents.every(content => 
-				isContentCompleted(content.id)
-			);
-
-			// If all content is completed, redirect to certificate page
-			if (allContentCompleted) {
-				hasRedirectedToCertificate.current = true;
-				
-				// Small delay to allow the completion toast to show
-				setTimeout(() => {
-					toast.success("🎉 Congratulations! You've completed the course!", {
-						duration: 3000,
-					});
-					setTimeout(() => {
-						router.push("/students/certificate");
-					}, 1500);
-				}, 500);
-			}
-		}
-	}, [allModules, contents, moduleProgress, enrollmentStatus, moduleId, router, isContentCompleted]);
 
 
 
@@ -243,10 +205,9 @@ export default function ModuleContentPage() {
 		}
 	}, [contents]); // Only depend on contents loading
 	
-	// Reset the auto-select flag and certificate redirect when module changes
+	// Reset the auto-select flag when module changes
 	useEffect(() => {
 		hasAutoSelectedRef.current = false;
-		hasRedirectedToCertificate.current = false;
 		setSelectedContentId(null);
 	}, [moduleId]);
 
@@ -288,39 +249,42 @@ export default function ModuleContentPage() {
 
 
 
-	const handleComplete = async (contentId: string, navigateToNext: boolean = false) => {
+	const handleComplete = async (contentId: string) => {
 		// Prevent duplicate calls
-		if (isUpdating) return;
-
-		// Check if already completed
-		if (isContentCompleted(contentId)) {
-			if (navigateToNext && nextContent) {
-				setSelectedContentId(nextContent.id);
-			}
-			return;
-		}
+		if (isUpdating || isContentCompleted(contentId)) return;
 
 		try {
-			console.log('Marking complete:', { contentId, navigateToNext, nextContent: nextContent?.id });
-			
-			// Simple: just mark as complete
+			// Check if course was already complete before this action
+			const wasAlreadyComplete = overallProgress?.progress_percentage === 100;
+
+			// 1. Mark as complete (optimistic update)
 			await updateProgressAsync({
 				contentId,
 				data: { is_completed: true, time_spent: 0 },
 			});
 
-			console.log('Marked complete successfully');
+			// 2. Wait for caches to update
+			await new Promise(resolve => setTimeout(resolve, 100));
 
-			// Navigate after success
-			if (navigateToNext && nextContent) {
-				console.log('Navigating to next content:', nextContent.id);
+			// 3. Check if course is now complete
+			const isCourseComplete = overallProgress?.completed_content === overallProgress?.total_content;
+
+			// 4. Navigate to next content or certificate
+			if (nextContent) {
+				toast.success("Moving to next content...");
 				setTimeout(() => {
-					console.log('Setting selected content to:', nextContent.id);
 					setSelectedContentId(nextContent.id);
-				}, 100);
+				}, 1000);
+			} else if (isCourseComplete && !wasAlreadyComplete) {
+				// Course just completed - show congratulations and navigate to certificate
+				toast.success("🎉 Congratulations! You've completed the course!");
+				setTimeout(() => {
+					router.push("/students/certificate");
+				}, 2000);
 			}
 		} catch (error) {
-			console.error('Failed to mark content as complete:', error);
+			// Error handling done by useProgress hook
+			console.error("Failed to complete content:", error);
 		}
 	};
 
@@ -331,12 +295,11 @@ export default function ModuleContentPage() {
 		} else if (direction === "next" && nextContent) {
 			// Check if next content is accessible
 			const isAccessible = checkContentAccessible(nextContent.id);
-			const isCompleted = isContentCompleted(nextContent.id);
 			
-			if (isAccessible || isCompleted) {
+			if (isAccessible) {
 				setSelectedContentId(nextContent.id);
 			} else {
-				toast.error("Complete the current content to unlock the next item");
+				toast.error("Complete previous content first");
 			}
 		}
 	};
@@ -502,7 +465,7 @@ export default function ModuleContentPage() {
 								</CardContent>
 							</Card>
 						) : selectedContent ? (
-							!checkContentAccessible(selectedContent.id) && !isContentCompleted(selectedContent.id) ? (
+							!checkContentAccessible(selectedContent.id) ? (
 								<Card className="rounded-md shadow-xs border-yellow-500/50">
 									<CardHeader>
 										<div className="flex items-start gap-3">
@@ -510,7 +473,7 @@ export default function ModuleContentPage() {
 											<div className="flex-1">
 												<CardTitle>Content Locked</CardTitle>
 												<p className="text-sm text-muted-foreground mt-2">
-													Complete the previous content to unlock this item.
+													Complete previous content first to unlock this item.
 												</p>
 											</div>
 										</div>
@@ -601,17 +564,15 @@ export default function ModuleContentPage() {
 											{/* Mark as Complete Button */}
 											{!isContentCompleted(selectedContent.id) ? (
 												<Button
-													onClick={() => handleComplete(selectedContent.id, true)}
+													onClick={() => handleComplete(selectedContent.id)}
 													disabled={isUpdating}
 													className="rounded-sm bg-[#049ad1] hover:bg-[#049ad1]/90 h-10 px-4!"
 												>
 													{isUpdating ? (
 														<>
 															<Hourglass className="w-4 h-4 mr-2 animate-spin" />
-															{hasNext ? "Saving & Loading Next..." : "Saving..."}
+															Saving...
 														</>
-													) : hasNext ? (
-														"Mark Complete & Continue"
 													) : (
 														"Mark as Complete"
 													)}
@@ -695,19 +656,19 @@ export default function ModuleContentPage() {
 									</div>
 								) : contents && contents.length > 0 ? (
 									<div className="space-y-1">
-										{contents.map((content, index) => {
-											const isAccessible = checkContentAccessible(content.id);
+										{contents.map((content) => {
 											const isCompleted = isContentCompleted(content.id);
-											const isLocked = !isAccessible && !isCompleted;
+											const isAccessible = checkContentAccessible(content.id);
+											const isLocked = !isAccessible;
 
 											return (
 												<button
 													key={content.id}
 													onClick={() => {
-														if (isAccessible || isCompleted) {
+														if (isAccessible) {
 															setSelectedContentId(content.id);
 														} else {
-															toast.error("Complete the previous content to unlock this item");
+															toast.error("Complete previous content first");
 														}
 													}}
 													disabled={isLocked}
@@ -722,7 +683,7 @@ export default function ModuleContentPage() {
 															{isCompleted ? (
 																<CheckCircle2 className="h-5 w-5 text-green-500" />
 															) : isLocked ? (
-																<Lock className="h-5 w-5 text-muted-foreground" />
+																<Lock className="h-5 w-5 text-yellow-500" />
 															) : (
 																<Circle className="h-5 w-5 text-muted-foreground" />
 															)}
@@ -731,7 +692,7 @@ export default function ModuleContentPage() {
 															<div className="text-sm font-medium truncate flex items-center gap-2">
 																{content.title}
 																{isLocked && (
-																	<Badge variant="outline" className="text-xs">
+																	<Badge variant="outline" className="text-xs text-yellow-600 border-yellow-500">
 																		Locked
 																	</Badge>
 																)}

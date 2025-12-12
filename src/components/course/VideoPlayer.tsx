@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from"react";
+import { useEffect, useRef, useState } from"react";
 import { Content } from"@/types";
-import { Loader2, AlertCircle } from"lucide-react";
+import { Loader2, AlertCircle, RefreshCw } from"lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface VideoPlayerProps {
 	content: Content;
-	onProgress?: (timeSpent: number, lastPosition: number) => void;
-	onComplete?: () => void;
-	initialPosition?: number;
 }
 
 interface VimeoPlayer {
@@ -35,131 +33,58 @@ function hasVimeo(win: Window): win is Window & { Vimeo: { Player: new (element:
 	return 'Vimeo' in win && win.Vimeo !== undefined;
 }
 
-export function VideoPlayer({
-	content,
-	onProgress,
-	onComplete,
-	initialPosition = 0
-}: VideoPlayerProps) {
+export function VideoPlayer({ content }: VideoPlayerProps) {
 	const iframeRef = useRef<HTMLIFrameElement>(null);
-	const [player, setPlayer] = useState<VimeoPlayer | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	const [isCompleted, setIsCompleted] = useState(false);
-	const [watchedPercentage, setWatchedPercentage] = useState(0);
-	const [scriptLoaded, setScriptLoaded] = useState(false);
-	const [isPlayerReady, setIsPlayerReady] = useState(false);
-	const [isMounted, setIsMounted] = useState(false);
+	const [isLoading, setIsLoading] = useState(true);
+	const [retryKey, setRetryKey] = useState(0);
 
-	const startTimeRef = useRef<number>(Date.now());
-	const lastPositionRef = useRef<number>(initialPosition);
-	const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+	const playerRef = useRef<VimeoPlayer | null>(null);
 
-	// Calculate and report progress - using ref to avoid recreating
-	const onProgressRef = useRef(onProgress);
-	const onCompleteRef = useRef(onComplete);
-
+	// Simple: Load script and initialize player in one effect
 	useEffect(() => {
-		onProgressRef.current = onProgress;
-		onCompleteRef.current = onComplete;
-	}, [onProgress, onComplete]);
+		if (typeof window === 'undefined' || !iframeRef.current) return;
 
-	// Ensure component is mounted before initializing player
-	useEffect(() => {
-		setIsMounted(true);
-	}, []);
-
-	// Calculate and report progress
-	const reportProgress = useCallback(() => {
-		if (!player || isCompleted) return;
-
-		const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-		onProgressRef.current?.(timeSpent, lastPositionRef.current);
-	}, [player, isCompleted]);
-
-	// Handle video completion
-	const handleVideoComplete = useCallback(() => {
-		if (isCompleted) return;
-
-		setIsCompleted(true);
-		const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
-
-		// Report final progress
-		onProgressRef.current?.(timeSpent, lastPositionRef.current);
-		onCompleteRef.current?.();
-	}, [isCompleted]);
-
-	// Load Vimeo Player API
-	useEffect(() => {
-		if (typeof window === 'undefined') return;
-
-		// Check if script already exists
-		const existingScript = document.querySelector('script[src*="player.vimeo.com"]');
-
-		if (existingScript) {
-			// Script already exists, check if Vimeo is loaded
-			if (hasVimeo(window)) {
-				setScriptLoaded(true);
-			} else {
-				// Wait for it to load
-				const checkVimeo = setInterval(() => {
-					if (hasVimeo(window)) {
-						setScriptLoaded(true);
-						clearInterval(checkVimeo);
-					}
-				}, 100);
-				
-				return () => clearInterval(checkVimeo);
-			}
-			return;
-		}
-
-		// Create new script
-		const script = document.createElement("script");
-		script.src ="https://player.vimeo.com/api/player.js";
-		script.async = true;
-
-		script.onload = () => {
-			setScriptLoaded(true);
-		};
-
-		script.onerror = () => {
-			setError("Failed to load video player");
-		};
-
-		document.body.appendChild(script);
-
-		return () => {
-			// Don't remove script on unmount as it may be used by other components
-		};
-	}, []); // Only run once on mount
-
-	// Initialize Vimeo Player
-	useEffect(() => {
-		if (!iframeRef.current || typeof window === 'undefined') {
-			return;
-		}
-
-		// Wait for component to be mounted and script to load
-		if (!isMounted || !scriptLoaded || !hasVimeo(window)) {
-			return;
-		}
-
-		let vimeoPlayer: VimeoPlayer | null = null;
 		let mounted = true;
+		let vimeoPlayer: VimeoPlayer | null = null;
 
-		const initPlayer = async () => {
+		const loadAndInit = async () => {
 			try {
+				setIsLoading(true);
 				setError(null);
-				setIsPlayerReady(false);
 
+				// Load Vimeo script if not already loaded
 				if (!hasVimeo(window)) {
-					setError("Video player not loaded");
-					return;
+					const existingScript = document.querySelector('script[src*="player.vimeo.com"]');
+					
+					if (!existingScript) {
+						const script = document.createElement("script");
+						script.src = "https://player.vimeo.com/api/player.js";
+						document.body.appendChild(script);
+						
+						await new Promise((resolve, reject) => {
+							script.onload = resolve;
+							script.onerror = reject;
+						});
+					} else {
+						// Wait for existing script to load
+						await new Promise<void>((resolve) => {
+							const check = setInterval(() => {
+								if (hasVimeo(window)) {
+									clearInterval(check);
+									resolve();
+								}
+							}, 50);
+						});
+					}
 				}
 
-				vimeoPlayer = new window.Vimeo.Player(iframeRef.current!);
+				if (!mounted || !hasVimeo(window)) return;
 
-				// Wait for player to be ready
+				// Initialize player
+				vimeoPlayer = new window.Vimeo.Player(iframeRef.current!);
+				playerRef.current = vimeoPlayer;
+
 				await vimeoPlayer.ready();
 
 				if (!mounted) {
@@ -167,66 +92,35 @@ export function VideoPlayer({
 					return;
 				}
 
-				setPlayer(vimeoPlayer);
-				setIsPlayerReady(true);
-
-				// Set initial position if provided
-				if (initialPosition > 0) {
-					try {
-						await vimeoPlayer.setCurrentTime(initialPosition);
-					} catch (err) {
-						console.warn("Could not set initial position:", err);
-					}
-				}
-
-				// Track time updates
-				vimeoPlayer.on("timeupdate", (data: { seconds: number; percent: number; duration: number }) => {
-					lastPositionRef.current = Math.floor(data.seconds);
-					setWatchedPercentage(Math.floor(data.percent * 100));
-				});
-
-				// Track when video ends
-				vimeoPlayer.on("ended", () => {
-					handleVideoComplete();
-				});
+				setIsLoading(false);
 
 				// Track errors
 				vimeoPlayer.on("error", (data: any) => {
-					console.error("Vimeo player error:", data);
+					console.error("Vimeo error:", data);
 					setError("Error playing video");
 				});
 
-				// Set up periodic progress reporting (every 30 seconds)
-				progressIntervalRef.current = setInterval(() => {
-					reportProgress();
-				}, 30000);
-
 			} catch (err) {
-				console.error("Failed to initialize Vimeo player:", err);
-				setError("Failed to load video player");
+				console.error("Failed to load video:", err);
+				if (mounted) {
+					setError("Failed to load video player");
+					setIsLoading(false);
+				}
 			}
 		};
 
-		initPlayer();
+		loadAndInit();
 
 		return () => {
 			mounted = false;
 
-			if (progressIntervalRef.current) {
-				clearInterval(progressIntervalRef.current);
-				progressIntervalRef.current = null;
-			}
-
 			if (vimeoPlayer) {
-				// Report final progress before cleanup
-				reportProgress();
-
-				vimeoPlayer.destroy().catch(err => {
-					console.warn("Error destroying Vimeo player:", err);
-				});
+				vimeoPlayer.destroy().catch(() => {});
 			}
+			
+			playerRef.current = null;
 		};
-	}, [content.vimeo_video_id, initialPosition, handleVideoComplete, reportProgress, scriptLoaded, isMounted]);
+	}, [content.vimeo_video_id, retryKey]);
 
 	if (!content.vimeo_video_id) {
 		return (
@@ -239,23 +133,26 @@ export function VideoPlayer({
 		);
 	}
 
+	const handleRetry = () => {
+		setError(null);
+		setIsLoading(true);
+		setRetryKey(prev => prev + 1);
+	};
+
 	if (error) {
 		return (
 			<div className="aspect-video bg-muted flex items-center justify-center">
-				<div className="text-center">
-					<AlertCircle className="h-12 w-12 text-destructive mx-auto mb-2" />
-					<p className="text-destructive font-medium">{error}</p>
-					<p className="text-sm text-muted-foreground mt-1">Please try refreshing the page</p>
+				<div className="text-center space-y-4">
+					<AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+					<div>
+						<p className="text-destructive font-medium">{error}</p>
+						<p className="text-sm text-muted-foreground mt-1">Please try again or refresh the page</p>
+					</div>
+					<Button onClick={handleRetry} variant="outline">
+						<RefreshCw className="mr-2 h-4 w-4" />
+						Retry
+					</Button>
 				</div>
-			</div>
-		);
-	}
-
-	// Don't render iframe until mounted to avoid hydration issues
-	if (!isMounted) {
-		return (
-			<div className="aspect-video bg-black flex items-center justify-center">
-				<Loader2 className="h-8 w-8 text-white animate-spin" />
 			</div>
 		);
 	}
@@ -263,12 +160,13 @@ export function VideoPlayer({
 	return (
 		<div className="space-y-2">
 			<div className="aspect-video bg-black overflow-hidden relative">
-				{!isPlayerReady && (
+				{isLoading && (
 					<div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
 						<Loader2 className="h-8 w-8 text-white animate-spin" />
 					</div>
 				)}
 				<iframe
+					key={content.vimeo_video_id}
 					ref={iframeRef}
 					src={`https://player.vimeo.com/video/${content.vimeo_video_id}?title=0&byline=0&portrait=0`}
 					className="w-full h-full"
@@ -276,18 +174,6 @@ export function VideoPlayer({
 					allowFullScreen
 					title={content.title}
 				/>
-			</div>
-
-			<div className={`flex items-center gap-2 text-sm transition-opacity ${
-				watchedPercentage > 0 ? 'opacity-100' : 'opacity-0 h-0'
-			}`}>
-				<div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
-					<div
-						className="bg-primary h-full transition-all duration-300"
-						style={{ width: `${watchedPercentage}%` }}
-					/>
-				</div>
-				<span className="text-xs font-medium text-muted-foreground">{watchedPercentage}%</span>
 			</div>
 		</div>
 	);
