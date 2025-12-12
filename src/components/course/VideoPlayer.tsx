@@ -43,7 +43,6 @@ export function VideoPlayer({
 }: VideoPlayerProps) {
 	const iframeRef = useRef<HTMLIFrameElement>(null);
 	const [player, setPlayer] = useState<VimeoPlayer | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [isCompleted, setIsCompleted] = useState(false);
 	const [watchedPercentage, setWatchedPercentage] = useState(0);
@@ -92,13 +91,6 @@ export function VideoPlayer({
 			// Script already exists, check if Vimeo is loaded
 			if (hasVimeo(window)) {
 				scriptLoadedRef.current = true;
-				setIsLoading(false);
-			} else {
-				// Wait for script to load
-				existingScript.addEventListener('load', () => {
-					scriptLoadedRef.current = true;
-					setIsLoading(false);
-				});
 			}
 			return;
 		}
@@ -111,12 +103,10 @@ export function VideoPlayer({
 
 		script.onload = () => {
 			scriptLoadedRef.current = true;
-			setIsLoading(false);
 		};
 
 		script.onerror = () => {
 			setError("Failed to load video player");
-			setIsLoading(false);
 		};
 
 		document.body.appendChild(script);
@@ -142,12 +132,10 @@ export function VideoPlayer({
 
 		const initPlayer = async () => {
 			try {
-				setIsLoading(true);
 				setError(null);
 
 				if (!hasVimeo(window)) {
 					setError("Video player not loaded");
-					setIsLoading(false);
 					return;
 				}
 
@@ -194,12 +182,9 @@ export function VideoPlayer({
 					reportProgress();
 				}, 30000);
 
-				setIsLoading(false);
-
 			} catch (err) {
 				console.error("Failed to initialize Vimeo player:", err);
 				setError("Failed to load video player");
-				setIsLoading(false);
 			}
 		};
 
@@ -250,13 +235,6 @@ export function VideoPlayer({
 	return (
 		<div className="space-y-2">
 			<div className="aspect-video bg-black overflow-hidden relative">
-				<div 
-					className={`absolute inset-0 flex items-center justify-center bg-black/50 z-10 transition-opacity ${
-						isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
-					}`}
-				>
-					<Loader2 className="h-8 w-8 text-white animate-spin" />
-				</div>
 				<iframe
 					ref={iframeRef}
 					src={`https://player.vimeo.com/video/${content.vimeo_video_id}?title=0&byline=0&portrait=0`}
