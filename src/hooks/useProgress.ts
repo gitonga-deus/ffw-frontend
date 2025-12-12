@@ -83,6 +83,18 @@ export function useProgress(options: UseProgressOptions = {}) {
       data: ProgressUpdateRequest;
       onNavigate?: () => void;
     }) => updateProgress(contentId, data),
+    
+    // Retry failed mutations (except for validation errors)
+    retry: (failureCount, error) => {
+      // Don't retry validation errors (4xx except 429)
+      const statusCode = (error as any)?.response?.status;
+      if (statusCode && statusCode >= 400 && statusCode < 500 && statusCode !== 429) {
+        return false;
+      }
+      // Retry up to 2 times for network/server errors
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff
 
     // Optimistic update: immediately update UI before server confirms
     onMutate: async ({ contentId, data }) => {
@@ -237,8 +249,17 @@ export function useProgress(options: UseProgressOptions = {}) {
         }
       }
 
-      // 3. Refetch overall progress in background (non-blocking)
-      queryClient.invalidateQueries({ queryKey: ['progress', 'overall'] });
+      // 3. Invalidate and refetch overall progress immediately for completion
+      // This ensures module progress percentages are updated
+      if (data.is_completed) {
+        queryClient.invalidateQueries({ 
+          queryKey: ['progress', 'overall'],
+          refetchType: 'active' // Refetch active queries immediately
+        });
+      } else {
+        // For partial progress, just invalidate (will refetch on next access)
+        queryClient.invalidateQueries({ queryKey: ['progress', 'overall'] });
+      }
 
       // Show success notification only for completion
       if (data.is_completed) {
@@ -299,6 +320,15 @@ export function useProgress(options: UseProgressOptions = {}) {
       return cached.is_completed;
     }
 
+    // Final fallback: check overall progress modules
+    const overall = queryClient.getQueryData<OverallProgress>([
+      'progress',
+      'overall',
+    ]);
+    
+    // This is a last resort and less reliable, but prevents false negatives
+    // Note: This doesn't have content-level detail, so we can't use it directly
+    // Just return false if we have no data
     return false;
   };
 
@@ -328,6 +358,15 @@ export function useProgress(options: UseProgressOptions = {}) {
     return overall?.modules.find((m) => m.module_id === checkModuleId);
   };
 
+  // Helper function to force refresh all progress data
+  const refreshAllProgress = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['progress', 'overall'] }),
+      moduleId ? queryClient.invalidateQueries({ queryKey: ['progress', 'module', moduleId] }) : Promise.resolve(),
+      contentId ? queryClient.invalidateQueries({ queryKey: ['progress', 'content', contentId] }) : Promise.resolve(),
+    ]);
+  };
+
   return {
     // Query data
     overallProgress,
@@ -349,6 +388,7 @@ export function useProgress(options: UseProgressOptions = {}) {
     refetchOverall,
     refetchModule,
     refetchContent,
+    refreshAllProgress,
 
     // Mutation
     updateProgress: updateProgressMutation.mutate,

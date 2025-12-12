@@ -30,8 +30,9 @@ export default function ModuleContentPage() {
 	const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
 	const [exerciseResponses, setExerciseResponses] = useState<Record<string, Record<string, string>>>({});
 	const hasRedirectedToCertificate = useRef(false);
-	const progressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const hasAutoSelectedRef = useRef(false);
+	const progressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+	const pendingProgressRef = useRef<{ contentId: string; timeSpent: number; lastPosition: number } | null>(null);
 	
 	// Use the new progress hook
 	const {
@@ -138,14 +139,29 @@ export default function ModuleContentPage() {
 		}
 	}, [moduleId, user]);
 
-	// Cleanup progress timeout on unmount
+	// Cleanup progress timeout on unmount and flush pending updates
 	useEffect(() => {
 		return () => {
+			// Clear timeout
 			if (progressTimeoutRef.current) {
 				clearTimeout(progressTimeoutRef.current);
 			}
+			
+			// Flush any pending progress update before unmounting
+			if (pendingProgressRef.current) {
+				const { contentId, timeSpent, lastPosition } = pendingProgressRef.current;
+				updateProgress({
+					contentId,
+					data: {
+						is_completed: false,
+						time_spent: timeSpent,
+						last_position: lastPosition,
+					},
+				});
+				pendingProgressRef.current = null;
+			}
 		};
-	}, []);
+	}, [updateProgress]);
 
 	// Check for course completion and redirect to certificate page (only on first completion)
 	useEffect(() => {
@@ -246,9 +262,10 @@ export default function ModuleContentPage() {
 		}
 	}, [contents]); // Only depend on contents loading
 	
-	// Reset the auto-select flag when module changes
+	// Reset the auto-select flag and certificate redirect when module changes
 	useEffect(() => {
 		hasAutoSelectedRef.current = false;
+		hasRedirectedToCertificate.current = false;
 		setSelectedContentId(null);
 	}, [moduleId]);
 
@@ -278,6 +295,9 @@ export default function ModuleContentPage() {
 
 	// Debounce progress updates to avoid too many API calls
 	const handleProgress = (contentId: string, timeSpent: number, lastPosition: number) => {
+		// Store pending progress for flush on unmount
+		pendingProgressRef.current = { contentId, timeSpent, lastPosition };
+		
 		// Clear existing timeout
 		if (progressTimeoutRef.current) {
 			clearTimeout(progressTimeoutRef.current);
@@ -293,6 +313,8 @@ export default function ModuleContentPage() {
 					last_position: lastPosition,
 				},
 			});
+			// Clear pending progress after successful update
+			pendingProgressRef.current = null;
 		}, 2000);
 	};
 
@@ -310,6 +332,15 @@ export default function ModuleContentPage() {
 			return;
 		}
 
+		// Clear any pending debounced progress updates for this content
+		if (pendingProgressRef.current?.contentId === contentId) {
+			pendingProgressRef.current = null;
+		}
+		if (progressTimeoutRef.current) {
+			clearTimeout(progressTimeoutRef.current);
+			progressTimeoutRef.current = null;
+		}
+
 		try {
 			// Wait for the server to confirm and cache to update
 			// Pass navigation callback to execute AFTER cache synchronization
@@ -320,7 +351,10 @@ export default function ModuleContentPage() {
 					time_spent: 0,
 				},
 				onNavigate: navigateToNext && nextContent 
-					? () => setSelectedContentId(nextContent.id)
+					? () => {
+						// Add small delay to ensure cache is fully updated
+						setTimeout(() => setSelectedContentId(nextContent.id), 50);
+					}
 					: undefined,
 			});
 

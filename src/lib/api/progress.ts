@@ -164,10 +164,19 @@ export async function updateProgress(
   try {
     const response = await api.post<ContentProgress>(
       `/progress/${contentId}`,
-      data
+      data,
+      {
+        timeout: 10000, // 10 second timeout for progress updates
+      }
     );
     return response.data;
   } catch (error) {
+    // Log error for debugging
+    console.error('Progress update failed:', {
+      contentId,
+      isCompleted: data.is_completed,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     handleProgressError(error);
   }
 }
