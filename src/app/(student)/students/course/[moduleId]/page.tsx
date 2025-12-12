@@ -543,11 +543,17 @@ export default function ModuleContentPage() {
 									<Separator />
 									<CardContent className="space-y-4 pt-6">
 										{selectedContent.content_type === "video" && (
-											<VideoPlayer content={selectedContent} />
+											<VideoPlayer 
+												key={selectedContent.id} 
+												content={selectedContent} 
+											/>
 										)}
 
 										{selectedContent.content_type === "pdf" && (
-											<PDFViewer content={selectedContent} />
+											<PDFViewer 
+												key={selectedContent.id} 
+												content={selectedContent} 
+											/>
 										)}
 
 										{selectedContent.content_type === "rich_text" && (
