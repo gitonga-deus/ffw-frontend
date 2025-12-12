@@ -48,6 +48,7 @@ export function VideoPlayer({
 	const [watchedPercentage, setWatchedPercentage] = useState(0);
 	const [scriptLoaded, setScriptLoaded] = useState(false);
 	const [isPlayerReady, setIsPlayerReady] = useState(false);
+	const [isMounted, setIsMounted] = useState(false);
 
 	const startTimeRef = useRef<number>(Date.now());
 	const lastPositionRef = useRef<number>(initialPosition);
@@ -61,6 +62,11 @@ export function VideoPlayer({
 		onProgressRef.current = onProgress;
 		onCompleteRef.current = onComplete;
 	}, [onProgress, onComplete]);
+
+	// Ensure component is mounted before initializing player
+	useEffect(() => {
+		setIsMounted(true);
+	}, []);
 
 	// Calculate and report progress
 	const reportProgress = useCallback(() => {
@@ -133,8 +139,8 @@ export function VideoPlayer({
 			return;
 		}
 
-		// Wait for script to load
-		if (!scriptLoaded || !hasVimeo(window)) {
+		// Wait for component to be mounted and script to load
+		if (!isMounted || !scriptLoaded || !hasVimeo(window)) {
 			return;
 		}
 
@@ -220,7 +226,7 @@ export function VideoPlayer({
 				});
 			}
 		};
-	}, [content.vimeo_video_id, initialPosition, handleVideoComplete, reportProgress, scriptLoaded]);
+	}, [content.vimeo_video_id, initialPosition, handleVideoComplete, reportProgress, scriptLoaded, isMounted]);
 
 	if (!content.vimeo_video_id) {
 		return (
@@ -241,6 +247,15 @@ export function VideoPlayer({
 					<p className="text-destructive font-medium">{error}</p>
 					<p className="text-sm text-muted-foreground mt-1">Please try refreshing the page</p>
 				</div>
+			</div>
+		);
+	}
+
+	// Don't render iframe until mounted to avoid hydration issues
+	if (!isMounted) {
+		return (
+			<div className="aspect-video bg-black flex items-center justify-center">
+				<Loader2 className="h-8 w-8 text-white animate-spin" />
 			</div>
 		);
 	}
